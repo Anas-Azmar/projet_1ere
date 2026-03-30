@@ -10,7 +10,8 @@ export enum EsportType {
     HANDBALL = "handball"
 }
 
-export interface TeamShortDTO extends BasicModelDTO{
+export interface TeamShortDTO{
+    id: number,
     name : string,
     sportType : EsportType;
 }
@@ -19,7 +20,7 @@ export interface TeamDTO extends BasicModelDTO {
     name : string,
     description: string,
     sportType: EsportType,
-    player: number[],
+    players: number[],
     trainerId: number | null,
 }
 
@@ -27,11 +28,11 @@ export interface TeamFullDTO extends BasicModelDTO {
     name : string,
     description: string,
     sportType: EsportType,
-    player: number[],
+    players: number[],
     trainer: UserShortDTO,
 }
 
-export interface NewTeamDTO extends BasicModelDTO {
+export interface NewTeamDTO {
     name: string,
     description?: string,
     sportType: EsportType,
@@ -42,6 +43,6 @@ export interface TeamDBO extends BasicModelDBO {
     description: string,
     sport_type: EsportType,
     players: number[],
-    trainerId: number | null,
+    trainer_id: number | null,
 }
 

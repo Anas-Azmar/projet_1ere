@@ -9,7 +9,8 @@ export enum EGameStatus {
     CANCELLED = "cancelled"
 }
 
-export interface GameShortDTO extends BasicModelDTO {
+export interface GameShortDTO {
+    id: number,
     status: EGameStatus,
     name: string,
     fieldId : number | null,
