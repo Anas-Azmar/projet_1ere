@@ -1,4 +1,6 @@
 import express, { type Express } from 'express'
+import { usersController } from './controllers/users.controller';
+import { authController } from './controllers/auth.controller';
 
 export const app : Express = express();
 
@@ -22,3 +24,6 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
+
+app.use('/users', usersController);
+app.use('/auth', authController);

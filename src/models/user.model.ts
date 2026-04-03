@@ -8,6 +8,10 @@ export enum ERole {
     TRAINER = "trainer"
 }
 
+export interface UserLoginDTO{
+    username: string,
+    password: string;
+}
 
 export enum EUserStatus {
     ACTIVE = "active",

@@ -1,6 +1,10 @@
-import { ERole } from "./user.model";
+import { Request } from "express";
+import { ERole, UserDTO } from "./user.model";
 
 
+export interface AuthentificatedRequest extends Request {
+    user ?: UserDTO
+}
 
 export interface UserLoginDTO {
     username : string,
@@ -12,3 +16,4 @@ export interface AuthentificatedUserDTO {
     token : string,
     role : ERole;
 }
+
