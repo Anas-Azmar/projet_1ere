@@ -95,6 +95,10 @@ usersController.post("/", (req : Request, res: Response) => {
         return res.status(400).send({message : "Invalid User"})
     }
 
+    if(!newUser.email.includes("@") || !newUser.email.includes(".")){
+        return res.status(400).send({message : "The email must contain at least one '@' and one '.'"});
+    }
+
     const user = UsersService.create(newUser);
 
     if(!user){
@@ -116,7 +120,7 @@ usersController.put("/:id", AuthService.authorize, (req: AuthentificatedRequest,
         return res.status(400).send({message : "Invalid User"})
     }
 
-    if(!isNumber(idUser)){
+    if(!isNumber(idUser) || Number.isNaN(idUser)){
         return res.status(400).send({message : "the user id must be a valid number"});
     }
 
@@ -126,6 +130,10 @@ usersController.put("/:id", AuthService.authorize, (req: AuthentificatedRequest,
 
     if(updateUser.id !== idUser){
         return res.status(400).send({message : "the body id must match with th id in parameter"})
+    }
+
+    if(!updateUser.email.includes("@") || !updateUser.email.includes(".")){
+        return res.status(400).send({message : "The email must contain at least one '@' and one '.'"});
     }
 
     const resultUpdate = UsersService.update(idUser, updateUser);
@@ -145,7 +153,7 @@ usersController.delete("/:id", AuthService.authorize, (req: AuthentificatedReque
     const idUser = Number(req.params.id);
     const currentUser = req.user!;
 
-    if(!isNumber(idUser)){
+    if(!isNumber(idUser) || Number.isNaN(idUser)){
         return res.status(400).send({message : "the id must be a valid number"})
     }
 
@@ -175,7 +183,7 @@ usersController.patch("/:id/role/:role", AuthService.authorize, AuthService.isAd
     const idUser = Number(req.params.id);
     const roleUser = req.params.role;
 
-    if(!isNumber(idUser)){
+    if(!isNumber(idUser) || Number.isNaN(idUser)){
         return res.status(400).send({message : "id must be a valid number"})
     }
 
@@ -209,7 +217,7 @@ usersController.patch("/:id/reactivate", AuthService.authorize, AuthService.isAd
 
     const idUser = Number(req.params.id);
 
-    if(!isNumber(idUser)){
+    if(!isNumber(idUser) || Number.isNaN(idUser)){
         return res.status(400).send({message : "id must be a valid number"})
     }
 

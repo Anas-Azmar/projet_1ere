@@ -1,4 +1,5 @@
-import { NewTeamDTO, TeamDBO, TeamDTO, TeamShortDTO } from "../models/team.model";
+import { NewTeamDTO, TeamDBO, TeamDTO, TeamFullDTO, TeamShortDTO } from "../models/team.model";
+import { UserShortDTO } from "../models/user.model";
 
 
 
@@ -48,6 +49,17 @@ export class TeamsMapper {
             id: sdbo.id,
             name: sdbo.sport_type,
             sportType: sdbo.sport_type,
+        }
+    }
+
+    public static FullTeams(team: TeamDBO, trainer : UserShortDTO, player : UserShortDTO[]): TeamFullDTO {
+        return {
+            id: team.id,
+            name: team.name,
+            description: team.description,
+            sportType: team.sport_type,
+            trainer: trainer,
+            players: player,
         }
     }
 }

@@ -58,7 +58,7 @@ export class UsersService {
         }
 
         } catch (error) {
-            LoggerService.error("cannot find a user with this id")
+            LoggerService.error("Error reading teams file in getById")
             return undefined;
         }
     }

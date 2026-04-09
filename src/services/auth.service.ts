@@ -116,4 +116,19 @@ public static isAdminOrReferee(req: AuthentificatedRequest, res: Response, next:
 
     return next();
 }
+
+
+public static isTrainer(req: AuthentificatedRequest, res: Response, next: NextFunction){
+
+    if(!req.user){
+        return res.status(401).send({message : "User not logged in"})
+    }
+
+    if(req.user.role !== ERole.TRAINER){
+        return res.status(403).send({message : "Only a traine can do this"});
+    }
+
+    return next();
+}
+
 }

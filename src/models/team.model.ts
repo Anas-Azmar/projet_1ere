@@ -28,7 +28,7 @@ export interface TeamFullDTO extends BasicModelDTO {
     name : string,
     description: string,
     sportType: ESportType,
-    players: number[],
+    players: UserShortDTO[],
     trainer: UserShortDTO,
 }
 
