@@ -160,17 +160,19 @@ usersController.delete("/:id", AuthService.authorize, (req: AuthentificatedReque
     if(currentUser?.role !== ERole.ADMIN && currentUser.id !== idUser){
         return res.status(403).send({message : "Forbidden: You can only delete your own profile"})
     }
-    // Cast to UserDTO to read the 'role'. We keep '| undefined' to prevent a server crash if the user is not found.
-    const targetUser = UsersService.getById(idUser, ERole.ADMIN) as UserDTO | undefined;
-    
-    if(targetUser?.role === ERole.ADMIN) {
-        return res.status(403).send({ message: "Forbidden: Admin accounts cannot be deleted" });
-    }
 
     const result = UsersService.delete(idUser);
 
-    if(!result){
+    if(result === "NOT_FOUND"){
         return res.status(404).send({message : "User not found"})
+    }
+
+    if(result === "IS_ADMIN"){//VERIFIER SI CE N'EST PAS UNE ERREUR 403 OU 400
+        return res.status(400).send({message : "Forbidden: You cannot delete an admin account"})
+    }
+
+    if(result === false){
+        return res.status(500).send({message : "Internal error while deleting user"})
     }
 
     return res.status(200).send(result);

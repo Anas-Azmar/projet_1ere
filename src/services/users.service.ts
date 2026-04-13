@@ -168,7 +168,7 @@ export class UsersService {
     }
 
     //DELETE USER
-    public static delete(id: number): boolean | undefined{
+    public static delete(id: number): boolean | "NOT_FOUND" | "IS_ADMIN" {
 
         let userDBO : UserDBO[] = [];
 
@@ -178,8 +178,18 @@ export class UsersService {
             const idUser = userDBO.findIndex(u => u.id === id && u.status === EUserStatus.ACTIVE);
 
             if(idUser === -1){
-                LoggerService.error("cannot find user with this id");
-                return undefined;
+                LoggerService.info("User ID not found");
+                return "NOT_FOUND";
+            }
+
+            if(userDBO[idUser].role === ERole.ADMIN){
+                LoggerService.error("Attempt to delete an admin account");
+                return "IS_ADMIN";
+            }
+
+            if(userDBO[idUser].status === EUserStatus.INACTIVE){
+                LoggerService.info("User already inactive, skipping");
+                return true;
             }
 
             userDBO[idUser].status = EUserStatus.INACTIVE;
@@ -190,7 +200,7 @@ export class UsersService {
             return true;
         } catch (error) {
             LoggerService.error("Error delete user")
-            return undefined;
+            return false;
         }
     }
 

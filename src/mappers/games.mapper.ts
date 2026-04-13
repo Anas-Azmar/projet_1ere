@@ -1,4 +1,4 @@
-import { GameDBO, GameDTO, GameShortDTO } from "../models/game.model";
+import { EGameStatus, GameDBO, GameDTO, GameShortDTO, NewGameDTO } from "../models/game.model";
 
 
 
@@ -48,5 +48,18 @@ export class GamesMapper{
             awayTeamId: dto.away_team_id,
             scheduledDate: dto.scheduled_date,
         }
-    } 
+    }
+
+    public static fromNewDTO(dto: NewGameDTO, status: EGameStatus, newId : number): GameDBO {
+        return {
+            id: newId,
+            status: status,
+            name: dto.name,
+            field_id: dto.fieldId,
+            referee_id: dto.refereeId,
+            home_team_id: dto.homeTeamId,
+            away_team_id: dto.awayTeamId,
+            scheduled_date: dto.scheduledDate,
+        }
+    }
 }
