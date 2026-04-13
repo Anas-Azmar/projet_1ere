@@ -43,7 +43,7 @@ export class GamesService {
         try {
             gameDBO = FilesService.readFile<GameDBO>(this.FILE_PATH) || [];
 
-            const gameId = gameDBO.find(game => game.id === id && game.scheduled_date != null);
+            const gameId = gameDBO.find(game => game.id === id && game.deleted_at === undefined);
 
             if(!gameId) {
                 LoggerService.error("cannot find game id");
@@ -157,20 +157,20 @@ export class GamesService {
                 return undefined;
             }
 
-            const currentUser = gameDBO[gameIndex]
+            const gameToUpdate = gameDBO[gameIndex]
 
-            if(currentUser.status !== EGameStatus.STARTED){
+            if(gameToUpdate.status !== EGameStatus.STARTED){
                 LoggerService.error("Game is not started, cannot set score")
                 return undefined;
             }
 
-            currentUser.home_score = home;
-            currentUser.away_score = away;
-            currentUser.updated_at= new Date().toISOString();
+            gameToUpdate.home_score = home;
+            gameToUpdate.away_score = away;
+            gameToUpdate.updated_at= new Date().toISOString();
 
             FilesService.writeFile(this.FILE_PATH, gameDBO);
 
-            return GamesMapper.toDTO(currentUser);
+            return GamesMapper.toDTO(gameToUpdate);
         } catch (error) {
             LoggerService.error("Error setup score")
             return undefined;
@@ -201,8 +201,8 @@ export class GamesService {
                 case EGameStatus.CREATED:
                     if(newStatus === EGameStatus.CANCELLED) {
                         isAllowed = true;
-                        break;
                     }
+                    break;
                 case EGameStatus.SCHEDULED:
                     if (newStatus === EGameStatus.CANCELLED) {
                         isAllowed = true;

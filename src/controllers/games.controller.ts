@@ -16,6 +16,10 @@ gamesController.get("/", (req: Request, res: Response) => {
 
     const result = GamesService.getAll();
 
+    if (!result) {
+        return res.status(500).send({ message: "Error retrieving games" });
+    }
+
     return res.status(200).send(result);
 })
 
@@ -65,14 +69,14 @@ gamesController.put("/:id", AuthService.isReferee, (req: AuthentificatedRequest,
     }
 
     if(result === "NOT_FOUND"){
-        return res.status(404).send({message : "Game neot found"})
+        return res.status(404).send({message : "Game not found"})
     }
 
     if(result === undefined){
         return res.status(500).send({message : "Internal error"})
     }
 
-    res.status(200).send(result);
+    return res.status(200).send(result);
 })
 
 
@@ -91,7 +95,7 @@ gamesController.delete("/:id", AuthService.isAdmin, (req: AuthentificatedRequest
         return res.status(500).send({message : "Failed to delete game"})
     }
 
-    return res.status(204).send(result);
+    return res.status(204).send();
 })
 
 
