@@ -1,4 +1,4 @@
-import { BasicModelDBO, BasicModelDTO } from "./basicModel";
+import { BasicModel, BasicModelDBO, BasicModelDTO } from "./basicModel";
 
 
 export enum EGameStatus {
@@ -13,22 +13,22 @@ export interface GameShortDTO {
     id: number,
     status: EGameStatus,
     name: string,
-    fieldId : number | null,
+    fieldId ?: number,
     homeTeamId: number,
     awayTeamId: number,
-    scheduledDate: string | null
+    scheduledDate?: string,
 }
 
 export interface GameDTO extends BasicModelDTO {
     status: EGameStatus,
     name : string,
-    fieldId: number | null,
-    refereeId: number | null,
+    fieldId?: number,
+    refereeId?: number,
     homeTeamId: number,
     awayTeamId: number,
-    homeScore: number | null,
-    awayScore: number | null,
-    scheduledDate: string | null,
+    homeScore?: number,
+    awayScore?: number,
+    scheduledDate?: string,
 }
 
 export interface NewGameDTO {
@@ -40,14 +40,35 @@ export interface NewGameDTO {
     scheduledDate?: string,
 }
 
+export interface NewGame {
+    name?: string,
+    fieldId?: number,
+    refereeId?: number,
+    homeTeamId?: number,
+    awayTeamId?: number,
+    scheduledDate?: string,
+}
+
 export interface GameDBO extends BasicModelDBO {
     status: EGameStatus,
     name: string,
-    field_id: number | null,
-    referee_id: number | null,
+    field_id?: number,
+    referee_id?: number,
     home_team_id: number,
     away_team_id: number,
-    home_score: number | null, 
-    away_score: number | null,
-    scheduled_date: string | null,
+    home_score?: number, 
+    away_score?: number,
+    scheduled_date?: string,
+}
+
+export interface Game extends BasicModel {
+    status: EGameStatus;
+    name: string;
+    fieldId?: number;
+    refereeId?: number;
+    homeTeamId: number;
+    awayTeamId: number;
+    homeScore?: number; 
+    awayScore?: number;
+    scheduledDate?: Date;
 }

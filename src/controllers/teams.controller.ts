@@ -4,11 +4,11 @@ import { UsersService } from "../services/users.service";
 import { TeamsService } from "../services/teams.service";
 import { AuthService } from "../services/auth.service";
 import { AuthentificatedRequest } from "../models/auth.model";
-import { LOADIPHLPAPI } from "node:dns";
 import { isNewTeamDTO, isNumber, isTeamDTO } from "../utils/guards";
-import { rmSync } from "node:fs";
-import { ERole } from "../models/user.model";
-import { resourceUsage } from "node:process";
+import { TeamsMapper } from "../mappers/teams.mapper";
+import { UsersMapper } from "../mappers/users.mapper";
+import { NewTeamDTO } from "../models/team.model";
+
 
 
 
@@ -21,7 +21,9 @@ teamsController.get("/", (req: Request, res: Response) => {
 
     const result = TeamsService.getAll();
 
-    return res.status(200).send(result);
+    const responseDTO = result.map(team => TeamsMapper.toShortDTO(team))
+
+    return res.status(200).send(responseDTO);
 })
 
 //GET TEAMS FULL
@@ -32,7 +34,12 @@ teamsController.get("/own", AuthService.authorize, (req: AuthentificatedRequest,
 
     const result = TeamsService.getMyTeams(userId);
 
-    return res.status(200).send(result);
+    if(!result){
+        return res.status(404).send({ message: "team not found" });
+    }
+
+
+    return res.status(200).send(TeamsMapper.toFullDTO(result));//A faire plus tard
 })
 
 //GET TEAMS ID
@@ -51,31 +58,37 @@ teamsController.get("/:id", (req: Request, res: Response ) => {
         return res.status(404).send({message : "cannot find team id"})
     }
 
-    return res.status(200).send(result);
+    return res.status(200).send(TeamsMapper.toDTO(result));
 })
 
 //POST NEW TEAMS
-teamsController.post("/", AuthService.isTrainer, (req: AuthentificatedRequest, res: Response) => {
+teamsController.post("/", AuthService.authorize ,AuthService.isTrainer, (req: AuthentificatedRequest, res: Response) => {
     LoggerService.info("[POST TEAMS]")
 
-    const team = req.body;
+    const team : NewTeamDTO = req.body;
     const trainerId = req.user!.id;
 
     if(!isNewTeamDTO(team)){
         return res.status(400).send({message : "Invalid team"})
     }
 
-    const result = TeamsService.create(team, trainerId)
+    const newTeam = TeamsMapper.fromNewDTO(team)
+
+    const result = TeamsService.create(newTeam, trainerId)
+
+    if(result === "ALREADY_EXISTS"){
+        return res.status(400).send({message : "a team with this name already exist"})
+    }
 
     if(!result){
         return res.status(400).send({message : "cannot create a new team"})
     }
 
-    return res.status(201).send(result);
+    return res.status(201).send(TeamsMapper.toDTO(result));
 }) 
 
 //UPDATE NEW TEAMS
-teamsController.put("/:id", AuthService.isTrainer, (req: AuthentificatedRequest, res: Response) => {
+teamsController.put("/:id", AuthService.authorize ,AuthService.isTrainer, (req: AuthentificatedRequest, res: Response) => {
      LoggerService.info("[PUT TEAMS]")
 
      const teamId = Number(req.params.id);
@@ -90,11 +103,13 @@ teamsController.put("/:id", AuthService.isTrainer, (req: AuthentificatedRequest,
         return res.status(400).send({message : "the body id must match the id in parameter"})
      }
 
-     if(!isTeamDTO(team)){
+      if(!isTeamDTO(team)){
         return res.status(400).send({message : "invalid team"})
      }
 
-     const result = TeamsService.update(teamId, team);
+       const updatedTeam = TeamsMapper.fromDTO(team)
+
+     const result = TeamsService.update(teamId, updatedTeam);
 
      if(result === "TEAM_NAME_ALREADY_TAKEN"){
         return res.status(400).send({message : "the team name is already taken by another team"})
@@ -104,13 +119,13 @@ teamsController.put("/:id", AuthService.isTrainer, (req: AuthentificatedRequest,
         return res.status(404).send({message : "cannot update team"})
      }
 
-     return res.status(200).send(result);
+     return res.status(200).send(TeamsMapper.toDTO(result));
 
 })
 
 //PATCH JOIN A TEAM
 
-teamsController.patch("/join/:id", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
+teamsController.patch("/:id/join", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
     LoggerService.info("[PATCH JOIN TEAM]")
 
     const teamId = Number(req.params.id);
@@ -122,20 +137,21 @@ teamsController.patch("/join/:id", AuthService.authorize, (req: AuthentificatedR
 
     const result = TeamsService.joinTeam(teamId, playerId);
 
+
     if(result === "ALREADY_IN_TEAM"){
         return res.status(400).send({message : "the user is already in this team"})
     }
 
-    if(result === "NOT_FOUND"){
+    if(result === "NOT_FOUND" || !result){
         return res.status(404).send({message : "team not found"})
     }
 
-    return res.status(200).send(result);
+    return res.status(200).send(TeamsMapper.toDTO(result));
 
 })
 
 //PATCH LEAVE TEAM
-teamsController.patch("/leave/:id", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
+teamsController.patch("/:id/leave", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
     LoggerService.info("[PATCH LEAVING THE TEAM]")
 
     const teamId = Number(req.params.id);
@@ -147,9 +163,9 @@ teamsController.patch("/leave/:id", AuthService.authorize, (req: Authentificated
 
     const result = TeamsService.leaveTeam(playerId, teamId);
 
-    if(result === "TEAM_NOT_FOUND" || result === "USER_NOT_FOUND"){
+    if(result === "TEAM_NOT_FOUND" || result === "USER_NOT_FOUND" || !result){
         return res.status(404).send({message : "the team does not exist or the player are not in this team"})
     }
 
-    return res.status(200).send(result);
+    return res.status(200).send(TeamsMapper.toDTO(result));
 })

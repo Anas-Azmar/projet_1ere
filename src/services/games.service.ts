@@ -1,7 +1,6 @@
-import { LOADIPHLPAPI, lookup } from "node:dns";
+
 import { GamesMapper } from "../mappers/games.mapper";
-import { EGameStatus, GameDBO, GameDTO, GameShortDTO, NewGameDTO } from "../models/game.model";
-import { IdUtils } from "../utils/id";
+import { EGameStatus, Game, GameDBO, GameDTO, GameShortDTO, NewGame, NewGameDTO } from "../models/game.model";
 import { FilesService } from "./files.service";
 import { LoggerService } from "./logger.service";
 
@@ -13,44 +12,77 @@ export class GamesService {
 
     private static readonly FILE_PATH = './data/games.json';
 
+    //GET NEXT ID
+    private static getNewId(items : Game[]) : number {
+        let maxId = 0;
+        if(items.length === 0){
+            return 1;
+        }
 
-    public static getAll(): GameShortDTO[] | undefined {
+        for(const item of items){
+            if(item.id > maxId){
+                maxId = item.id;
+            }
+        }
+        return maxId + 1;
 
-        let gameDBO : GameDBO[] = [];
+    }
+
+
+    private static readDB(): Game[] {
+        try {
+            const dbos = FilesService.readFile<GameDBO>(this.FILE_PATH) || []
+        return dbos.map(game => GamesMapper.fromDBO(game))
+        } catch (error) {
+            LoggerService.error("Error to read files games.json");
+            return []
+        }
+    }
+
+    private static write(game : Game[]): boolean {
+        try {
+            const dbos = game.map(dbo => GamesMapper.toDBO(dbo))
+        FilesService.writeFile(this.FILE_PATH, dbos);
+        return true;
+        } catch (error) {
+            LoggerService.error("Error to write in games.json");
+            return false;
+        }
+    }
+
+
+    public static getAll(): Game[] {
 
         try {
-            gameDBO = FilesService.readFile<GameDBO>(this.FILE_PATH) || [];
+            const games = this.readDB();
 
             const today = new Date();
 
             today.setHours(0,0,0,0);
 
-            const upComingGames = gameDBO.filter(game => game.scheduled_date !== null && new Date(game.scheduled_date) >= today)
+            const upComingGames = games.filter(game => game.scheduledDate !== undefined && game.scheduledDate >= today)
 
-
-            return upComingGames.map(game=> GamesMapper.toShortDTO(game));
+           return upComingGames;
         } catch (error) {
             LoggerService.error("Error getting upcoming games");
-            return undefined;
+            return [];
         }
     }
 
     //GET ID
-    public static getById(id : number): GameDTO | undefined {
-
-        let gameDBO : GameDBO[] = [];
+    public static getById(id : number): Game | undefined {
 
         try {
-            gameDBO = FilesService.readFile<GameDBO>(this.FILE_PATH) || [];
+           const games = this.readDB();
 
-            const gameId = gameDBO.find(game => game.id === id && game.deleted_at === undefined);
+            const gameId = games.find(game => game.id === id && game.deletedAt === undefined);
 
             if(!gameId) {
                 LoggerService.error("cannot find game id");
                 return undefined;
             }
 
-            return GamesMapper.toDTO(gameId);
+            return gameId
         } catch (error) {
             LoggerService.error("Error reading game file in getById")
             return undefined;
@@ -59,24 +91,65 @@ export class GamesService {
 
     //POST NEW GAME
 
-    //a finir
-
-    //PUT GAMES
-    public static update(id: number, upGame: GameDTO): GameDTO | "NOT_FOUND" | "BAD_REQUEST" | undefined {
-
-        let gameDBO : GameDBO[] = [];
+    public static create(game: NewGame, refereId : number): Game | undefined{// A Faire corriger le newGame champs undefined
 
         try {
-            gameDBO = FilesService.readFile<GameDBO>(this.FILE_PATH) || [];
+            const games = this.readDB();
 
-            const gameIndex = gameDBO.findIndex(game => game.id === id && game.deleted_at === undefined);
+            const isPresent = game.fieldId != null && game.scheduledDate != null;
+
+            let status = EGameStatus.CREATED
+
+            if(isPresent){
+                status = EGameStatus.SCHEDULED;
+            }
+
+            const newId = this.getNewId(games);
+
+            const newGame : Game = {
+                id: newId,
+                status : status,
+                name : game.name || "Match deja nomme",
+                homeTeamId : game.homeTeamId || 0,
+                awayTeamId : game.awayTeamId || 0,
+                fieldId : game.fieldId,
+                refereeId: game.refereeId || refereId,
+                scheduledDate: game.scheduledDate ? new Date(game.scheduledDate) : undefined,
+                homeScore: 0,
+                awayScore: 0,
+                createdAt : new Date(),
+                updatedAt : new Date()
+            }
+
+            
+
+            games.push(newGame);
+
+            if(!this.write(games)){
+                return undefined
+            }
+
+            return newGame
+        } catch (error) {
+            LoggerService.error("Cannot create a new Game");
+            return undefined;
+        }
+    }
+
+    //PUT GAMES
+    public static update(id: number, upGame: Game): Game | "BAD_REQUEST" | undefined {
+
+        try {
+            const games = this.readDB();
+
+            const gameIndex = games.findIndex(game => game.id === id && game.deletedAt === undefined);
             
             if(gameIndex === -1){
                 LoggerService.error("cannot find this id game")
-                return "NOT_FOUND";
+                return undefined;
             }
 
-            const gameToUpdate = gameDBO[gameIndex];
+            const gameToUpdate = games[gameIndex];
 
             if(gameToUpdate.status === EGameStatus.FINISHED || gameToUpdate.status === EGameStatus.CANCELLED){
                 LoggerService.error("Impossible to update the game with the status Finished or Canceled")
@@ -85,30 +158,33 @@ export class GamesService {
 
             if(gameToUpdate.status === EGameStatus.STARTED){
                 if(
-                    upGame.fieldId != gameToUpdate.field_id ||
-                    upGame.refereeId != gameToUpdate.referee_id ||
-                    upGame.homeTeamId != gameToUpdate.home_team_id ||
-                    upGame.awayTeamId != gameToUpdate.away_team_id
+                    upGame.fieldId != gameToUpdate.fieldId ||
+                    upGame.refereeId != gameToUpdate.refereeId ||
+                    upGame.homeTeamId != gameToUpdate.homeTeamId ||
+                    upGame.awayTeamId != gameToUpdate.awayTeamId
                 ) {
                     LoggerService.error("Cannot change locked fields on a started game")
                     return "BAD_REQUEST";
                 }
             }
 
+  
             gameToUpdate.status = upGame.status;
             gameToUpdate.name = upGame.name;
-            gameToUpdate.field_id = upGame.fieldId;
-            gameToUpdate.referee_id = upGame.refereeId;
-            gameToUpdate.home_team_id = upGame.homeTeamId;
-            gameToUpdate.away_team_id = upGame.awayTeamId;
-            gameToUpdate.home_score = upGame.homeScore;
-            gameToUpdate.away_score = upGame.awayScore;
-            gameToUpdate.scheduled_date = upGame.scheduledDate;
-            gameToUpdate.updated_at = new Date().toISOString();
+            gameToUpdate.fieldId = upGame.fieldId,
+            gameToUpdate.refereeId = upGame.refereeId;
+            gameToUpdate.homeTeamId = upGame.homeTeamId;
+            gameToUpdate.awayTeamId = upGame.awayTeamId;
+            gameToUpdate.homeScore = upGame.homeScore;
+            gameToUpdate.awayScore = upGame.awayScore;
+            gameToUpdate.scheduledDate = upGame.scheduledDate;
+            gameToUpdate.updatedAt = new Date();
 
-            FilesService.writeFile(this.FILE_PATH, gameDBO);
+            if(!this.write(games)){
+                return undefined;
+            }
 
-            return GamesMapper.toDTO(gameToUpdate);
+            return gameToUpdate;
 
         } catch (error) {
             LoggerService.error("Error while updating game");
@@ -118,23 +194,19 @@ export class GamesService {
 
     public static delete(id: number): boolean {
 
-        let gameDBO : GameDBO[] = [];
-
         try {
-            gameDBO = FilesService.readFile<GameDBO>(this.FILE_PATH) || [];
+            const games = this.readDB();
 
-            const gameIndex = gameDBO.findIndex(game => game.id === id && game.deleted_at === undefined);
+            const gameIndex = games.findIndex(game => game.id === id && game.deletedAt === undefined);
 
             if(gameIndex === -1){
                 LoggerService.info("game already delete")
                 return true;
             }
 
-            gameDBO.splice(gameIndex, 1);
+            games.splice(gameIndex, 1);
 
-            FilesService.writeFile(this.FILE_PATH, gameDBO);
-
-            return true;
+            return this.write(games)
 
         } catch (error) {
             LoggerService.error("Error with the suppression")
@@ -143,34 +215,35 @@ export class GamesService {
     }
 
     //PATCH SET SCORE
-    public static setScore(id: number, home: number, away: number): GameDTO | undefined {
-
-        let gameDBO : GameDBO[] = [];
+    public static setScore(id: number, home: number, away: number): Game | undefined {
 
         try {
-            gameDBO = FilesService.readFile<GameDBO>(this.FILE_PATH) || [];
+            const games = this.readDB();
 
-            const gameIndex = gameDBO.findIndex(game => game.id === id && game.deleted_at === undefined);
+            const gameIndex = games.findIndex(game => game.id === id && game.deletedAt === undefined);
 
             if(gameIndex === -1){
                 LoggerService.error("game id not found")
                 return undefined;
             }
 
-            const gameToUpdate = gameDBO[gameIndex]
+            const gameToUpdate = games[gameIndex]
 
             if(gameToUpdate.status !== EGameStatus.STARTED){
                 LoggerService.error("Game is not started, cannot set score")
                 return undefined;
             }
 
-            gameToUpdate.home_score = home;
-            gameToUpdate.away_score = away;
-            gameToUpdate.updated_at= new Date().toISOString();
+            gameToUpdate.homeScore = home;
+            gameToUpdate.awayScore = away;
+            gameToUpdate.updatedAt= new Date();
 
-            FilesService.writeFile(this.FILE_PATH, gameDBO);
+             if(!this.write(games)){
+                return undefined;
+            }
 
-            return GamesMapper.toDTO(gameToUpdate);
+            return gameToUpdate;
+            
         } catch (error) {
             LoggerService.error("Error setup score")
             return undefined;
@@ -178,21 +251,19 @@ export class GamesService {
     }
 
     //Patch set status
-    public static updateGameStatus(id: number, newStatus: EGameStatus): GameDTO | undefined | "NOT_FOUND" | "BAD_REQUEST" {
-
-        let gameDBO : GameDBO[] = [];
+    public static updateGameStatus(id: number, newStatus: EGameStatus): Game | undefined | "BAD_REQUEST" {
 
         try {
-            gameDBO = FilesService.readFile<GameDBO>(this.FILE_PATH) || [];
+           const games = this.readDB();
 
-            const indexGame = gameDBO.findIndex(game => game.id === id && game.deleted_at === undefined);
+            const indexGame = games.findIndex(game => game.id === id && game.deletedAt === undefined);
 
             if(indexGame === -1){
                 LoggerService.error("game id not found")
-                return "NOT_FOUND";
+                return undefined;
             }
 
-            const game = gameDBO[indexGame]
+            const game = games[indexGame]
 
             let isAllowed = false;
 
@@ -207,7 +278,7 @@ export class GamesService {
                     if (newStatus === EGameStatus.CANCELLED) {
                         isAllowed = true;
                     } else if (newStatus === EGameStatus.STARTED) {
-                        if (!game.field_id || !game.referee_id || !game.home_team_id || !game.away_team_id || game.home_score !== 0 || game.away_score !== 0) {
+                        if (!game.fieldId || !game.refereeId || !game.homeTeamId || !game.awayTeamId || game.homeScore !== 0 || game.awayScore !== 0) {
                             LoggerService.error("Missing prerequisites to start game");
                             return "BAD_REQUEST"; 
                         }
@@ -217,8 +288,7 @@ export class GamesService {
                 case EGameStatus.STARTED:
                     if (newStatus === EGameStatus.FINISHED) {
                         isAllowed = true;
-                        break;
-                    }
+                    }break;
             }
 
             if(!isAllowed){
@@ -227,11 +297,13 @@ export class GamesService {
             }
 
             game.status = newStatus;
-            game.updated_at = new Date().toISOString();
+            game.updatedAt = new Date();
 
-            FilesService.writeFile(this.FILE_PATH, gameDBO);
+            if(!this.write(games)){
+                return undefined;
+            }
 
-            return GamesMapper.toDTO(game)
+            return game;
 
         } catch (error) {
             return undefined;

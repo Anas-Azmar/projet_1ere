@@ -1,4 +1,4 @@
-import { BasicModelDBO, BasicModelDTO } from "./basicModel";
+import { BasicModel, BasicModelDBO, BasicModelDTO } from "./basicModel";
 
 
 export interface NewFieldDTO {
@@ -13,5 +13,15 @@ export interface FieldDTO extends BasicModelDTO {
 
 export interface FieldDBO extends BasicModelDBO {
     name: string,
+    location: string,
+}
+
+export interface Field extends BasicModel {
+    name: string,
+    location: string,
+}
+
+export interface NewField {
+    name : string,
     location: string,
 }

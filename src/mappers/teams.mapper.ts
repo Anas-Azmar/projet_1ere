@@ -1,65 +1,90 @@
-import { NewTeamDTO, TeamDBO, TeamDTO, TeamFullDTO, TeamShortDTO } from "../models/team.model";
-import { UserShortDTO } from "../models/user.model";
-
-
+import { NewTeam, NewTeamDTO, Team, TeamDBO, TeamDTO, TeamFullDTO, TeamShortDTO } from "../models/team.model";
+import { User, UserShortDTO } from "../models/user.model";
+import { UsersMapper } from "./users.mapper";
 
 export class TeamsMapper {
-    //DBO => DTO
-    public static toDTO(dto: TeamDBO): TeamDTO {
+    public static toDTO(domain: Team): TeamDTO {
         return {
-            id: dto.id,
-            name: dto.name,
-            description: dto.description,
-            sportType: dto.sport_type,
-            players: dto.players,
-            trainerId: dto.trainer_id,
-            createdAt: dto.created_at,
-            updatedAt: dto.updated_at,
+            id: domain.id,
+            name: domain.name,
+            description: domain.description,
+            sportType: domain.sportType,
+            players: domain.players,
+            trainerId: domain.trainerId,
+            createdAt: domain.createdAt.toISOString(),
+            updatedAt: domain.updatedAt.toISOString(),
         }
     }
-    //DTO => DBO
-    public static toDBO(dbo: TeamDTO): TeamDBO {
+
+    public static toDBO(domain: Team): TeamDBO {
+        return {
+            id: domain.id,
+            name: domain.name,
+            description: domain.description,
+            sport_type: domain.sportType,
+            players: domain.players,
+            trainer_id: domain.trainerId,
+            created_at: domain.createdAt.toISOString(),
+            updated_at: domain.updatedAt.toISOString(),
+            deleted_at: domain.deletedAt ? domain.deletedAt.toISOString() : undefined,
+        }
+    }
+
+    // NOUVEAU : Lecture de la BDD
+    public static fromDBO(dbo: TeamDBO): Team {
         return {
             id: dbo.id,
             name: dbo.name,
             description: dbo.description,
-            sport_type: dbo.sportType,
+            sportType: dbo.sport_type,
             players: dbo.players,
-            trainer_id: dbo.trainerId,
-            created_at: dbo.createdAt as string,
-            updated_at: dbo.updatedAt as string,
+            trainerId: dbo.trainer_id,
+            createdAt: new Date(dbo.created_at),
+            updatedAt: new Date(dbo.updated_at),
+            deletedAt: dbo.deleted_at ? new Date(dbo.deleted_at) : undefined,
         }
     }
 
-    public static fromNewDTO(newDTO : NewTeamDTO, newId : number, trainerId : number, date : string): TeamDBO {
+    public static fromNewDTO(dto: NewTeamDTO): NewTeam {
         return {
-            id: newId,
-            name: newDTO.name,
-            description: newDTO.description as string,
-            sport_type: newDTO.sportType,
-            players : [],
-            trainer_id: trainerId,
-            created_at: date,
-            updated_at: date,
+            name: dto.name,
+            description: dto.description,
+            sportType: dto.sportType,
         }
     }
 
-    public static toShortDTO(sdbo: TeamDBO): TeamShortDTO{
+    public static toShortDTO(domain: Team): TeamShortDTO {
         return {
-            id: sdbo.id,
-            name: sdbo.sport_type,
-            sportType: sdbo.sport_type,
+            id: domain.id,
+            name: domain.name,
+            sportType: domain.sportType,
         }
     }
 
-    public static FullTeams(team: TeamDBO, trainer : UserShortDTO, player : UserShortDTO[]): TeamFullDTO {
+    public static toFullDTO(domain: Team, trainer: UserShortDTO, players: UserShortDTO[]): TeamFullDTO {
         return {
-            id: team.id,
-            name: team.name,
-            description: team.description,
-            sportType: team.sport_type,
+            id: domain.id,
+            name: domain.name,
+            description: domain.description,
+            sportType: domain.sportType,
             trainer: trainer,
-            players: player,
+            players: players,
+            createdAt: domain.createdAt.toISOString(),
+            updatedAt: domain.updatedAt.toISOString(),
         }
     }
+
+    public static fromDTO(domain: TeamDTO): Team {
+        return {
+            id: domain.id,
+            name : domain.name,
+            description: domain.description,
+            sportType: domain.sportType,
+            players: domain.players,
+            trainerId: domain.trainerId,
+            createdAt: domain.createdAt ? new Date(domain.createdAt) : new Date(),
+            updatedAt: domain.updatedAt ? new Date(domain.updatedAt) : new Date(),
+        }
+    }
+
 }

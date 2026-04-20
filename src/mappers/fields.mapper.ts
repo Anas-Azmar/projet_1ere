@@ -1,34 +1,53 @@
-import { FieldDBO, FieldDTO, NewFieldDTO } from "../models/field.model";
-
+import { Field, FieldDBO, FieldDTO, NewField, NewFieldDTO } from "../models/field.model";
 
 export class FieldsMapper {
-    public static toDTO(fields : FieldDBO): FieldDTO {
+    public static toDTO(domain: Field): FieldDTO {
         return {
-            id: fields.id,
-            name: fields.name   ,
-            location: fields.location,
-            createdAt: fields.created_at,
-            updatedAt: fields.updated_at,
+            id: domain.id,
+            name: domain.name,
+            location: domain.location,
+            createdAt: domain.createdAt.toISOString(),
+            updatedAt: domain.updatedAt.toISOString(),
         }
     }
 
-    public static fromNewDTO(fields : NewFieldDTO, id: number, date: string): FieldDBO {
+    public static fromNewDTO(dto: NewFieldDTO): NewField {
         return {
-            id: id,
-            name: fields.name,
-            location: fields.location,
-            created_at: date,
-            updated_at: date,
+            name: dto.name,
+            location: dto.location,
         }
     }
 
-    public static toDBO(fields : FieldDTO): FieldDBO {
+    public static toDBO(domain: Field): FieldDBO {
         return {
-            id: fields.id,
-            name: fields.name,
-            location: fields.location,
-            created_at: fields.createdAt as string,
-            updated_at: fields.updatedAt as string,
+            id: domain.id,
+            name: domain.name,
+            location: domain.location,
+            created_at: domain.createdAt.toISOString(),
+            updated_at: domain.updatedAt.toISOString(),
+            deleted_at: domain.deletedAt ? domain.deletedAt.toISOString() : undefined,
         }
     }
+
+    public static fromDBO(dbo: FieldDBO): Field {
+        return {
+            id: dbo.id,
+            name: dbo.name,
+            location: dbo.location,
+            createdAt: new Date(dbo.created_at),
+            updatedAt: new Date(dbo.updated_at),
+            deletedAt: dbo.deleted_at ? new Date(dbo.deleted_at) : undefined,
+        }
+    }
+
+
+    public static fromDTO(dto: FieldDTO): Field {
+    return {
+        id: dto.id,
+        name: dto.name,
+        location: dto.location,
+        createdAt: dto.createdAt ? new Date(dto.createdAt) : new Date(),
+        updatedAt: dto.updatedAt ? new Date(dto.updatedAt) : new Date(),
+    };
+}
 }

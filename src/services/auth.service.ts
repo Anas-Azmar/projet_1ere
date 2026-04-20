@@ -7,6 +7,8 @@ import { LoggerService } from "./logger.service";
 import { UsersService } from "./users.service";
 import bcrypt from "bcrypt"
 import { isString } from "../utils/guards";
+import { Game, GameDBO } from "../models/game.model";
+import { GamesMapper } from "../mappers/games.mapper";
 
 
 
@@ -15,21 +17,19 @@ export class AuthService {
     private static readonly FILE_PATH = "./data/users.json";
 
 
-    //token
+    //token-token
     static login(userName : string, mdp: string): AuthentificatedUserDTO | undefined {
 
-        let userDBO : UserDBO[] = [];
         
         try {
-            userDBO = FilesService.readFile<UserDBO>(this.FILE_PATH) || [];
+           
+            const user = UsersService.getByUserName(userName);
 
-            const User = userDBO.find(user => user.username === userName && user.status === EUserStatus.ACTIVE)
-
-            if(!User){
+            if(!user){
                 return undefined;
             }
 
-            const isPasswordValid = bcrypt.compareSync(mdp, User.password);
+            const isPasswordValid = bcrypt.compareSync(mdp, user.password);
 
             if(!isPasswordValid){
                 return undefined;
@@ -45,7 +45,7 @@ export class AuthService {
             return {
                 username: userName,
                 token: token,
-                role : User.role,
+                role : user.role,
             }
              
         } catch (error) {
@@ -54,6 +54,7 @@ export class AuthService {
         }
     }
 
+    //MIDDLEWARE D'AUTHENTIFICATION
     public static authorize(req: AuthentificatedRequest, res: Response, next: NextFunction){
         
         const token = req.get("authorization")
@@ -126,6 +127,21 @@ public static isTrainer(req: AuthentificatedRequest, res: Response, next: NextFu
 
     if(req.user.role !== ERole.TRAINER){
         return res.status(403).send({message : "Only a traine can do this"});
+    }
+
+    return next();
+}
+
+public static isRefereeOrTrainerOrAdmin(req: AuthentificatedRequest, res: Response, next : NextFunction) {
+
+    if(!req.user){
+        return res.status(401).send({message : "User not logged in"})
+    }
+
+    const role = req.user.role
+
+    if(role != ERole.REFEREE && role != ERole.ADMIN && role != ERole.TRAINER){
+        return res.status(403).send({message : "only a trainer or an admin or a referee can do this"})
     }
 
     return next();

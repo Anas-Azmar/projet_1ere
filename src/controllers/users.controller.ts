@@ -17,9 +17,18 @@ usersController.get("/", AuthService.authorize, (req: AuthentificatedRequest, re
 
     const role = req.user!.role;
 
-    const users = UsersService.getAll(role);
+    const users = UsersService.getAll();
 
-    return res.status(200).send(users);
+    if(role === ERole.ADMIN) {
+        const responseDTO = users.map(user => UsersMapper.toDTO(user))
+        return res.status(200).send(responseDTO);
+    } else {
+        const responseDTO = users.map(user => UsersMapper.toShortDTO(user))
+
+        return res.status(200).send(responseDTO)
+    }
+
+    
 })
 
 //GET BY ID
@@ -33,17 +42,18 @@ usersController.get("/:id", AuthService.authorize, (req: AuthentificatedRequest,
         return res.status(400).send({message : "must be a valid id"});
     }
 
-    if(currentUser.role !== ERole.ADMIN && currentUser.id !== userId) {
-        return res.status(403).send({message : "Forbidden : you can only view your own profile"})
-    }
-
-    const user = UsersService.getById(userId, currentUser.role);
+    const user = UsersService.getById(userId);
 
     if(!user){
         return res.status(404).send({message : "cannot find user id"});
     }
 
-    return res.status(200).send(user)
+    if(currentUser.role === ERole.ADMIN || currentUser.id === userId){
+        return res.status(200).send(UsersMapper.toDTO(user))
+    } else {
+        return res.status(200).send(UsersMapper.toShortDTO(user))
+    }
+    
 })
 
 //GET USERNAME
@@ -62,7 +72,7 @@ usersController.get("/username/:name", AuthService.authorize, AuthService.isAdmi
         return res.status(404).send({message : "cannot find userName"});
     }
 
-    return res.status(200).send(user)
+    return res.status(200).send(UsersMapper.toDTO(user))
 })
 
 //GET BY EMAIL
@@ -81,7 +91,7 @@ usersController.get("/email/:email", AuthService.authorize, AuthService.isAdminO
         return res.status(404).send({message : "cannot find user with this email"});
     }
 
-    return res.status(200).send(user)
+    return res.status(200).send(UsersMapper.toDTO(user))
 })
 
 
@@ -89,23 +99,29 @@ usersController.get("/email/:email", AuthService.authorize, AuthService.isAdminO
 usersController.post("/", (req : Request, res: Response) => {
     LoggerService.info("[POST]")
 
-    const newUser : NewUserDTO = req.body;
+    const body : NewUserDTO = req.body;
 
-    if(!isNewUserDTO(newUser)){
+    if(!isNewUserDTO(body)){
         return res.status(400).send({message : "Invalid User"})
     }
 
-    if(!newUser.email.includes("@") || !newUser.email.includes(".")){
+    if(!body.email.includes("@") || !body.email.includes(".")){//Pense a mettre un guard a la place
         return res.status(400).send({message : "The email must contain at least one '@' and one '.'"});
     }
 
-    const user = UsersService.create(newUser);
+    const newUser = UsersMapper.fromNewDTO(body);
 
-    if(!user){
+    const createdUser = UsersService.create(newUser);
+
+    if(createdUser === "ALREADY_EXISTS") {
+        return res.status(400).send({ message: "Cannot create a new user" })
+    }
+
+    if(!createdUser){
         return res.status(400).send({message : "cannot create a new user"})
     }
 
-    return res.status(201).send(user);
+    return res.status(201).send(UsersMapper.toDTO(createdUser))
 })
 
 
@@ -123,26 +139,40 @@ usersController.put("/:id", AuthService.authorize, (req: AuthentificatedRequest,
     if(!isNumber(idUser) || Number.isNaN(idUser)){
         return res.status(400).send({message : "the user id must be a valid number"});
     }
-
+    //Authenticated user is not an admin and tries to update another user
     if(currentUser.role !== ERole.ADMIN && currentUser.id !== idUser){
         return res.status(403).send("only admin can update their own account")
     }
+    //L'ID de l'URL doit matcher avec l'ID dans le Body
+    if(currentUser.id !== idUser){//a verifier
+        return res.status(403).send({message : "the body id must match with th id in parameter"})
+    }
 
     if(updateUser.id !== idUser){
-        return res.status(400).send({message : "the body id must match with th id in parameter"})
+        return res.status(400).send({message : "body id must match the id in parameter"})
     }
 
     if(!updateUser.email.includes("@") || !updateUser.email.includes(".")){
         return res.status(400).send({message : "The email must contain at least one '@' and one '.'"});
     }
 
-    const resultUpdate = UsersService.update(idUser, updateUser);
-    
-    if(!resultUpdate){
-        return res.status(404).send({message : "internal error"})
+    const userDTO = UsersMapper.fromDTO(updateUser)
+
+    const resultUpdate = UsersService.update(idUser, userDTO);
+
+    if(resultUpdate === "NOT_FOUND"){
+        return res.status(404).send({ message: "User not found" });
     }
 
-    return res.status(200).send(resultUpdate);
+    if (resultUpdate === "BAD_REQUEST") {
+        return res.status(400).send({ message: "Email or username conflict" });
+    }
+    
+    if(!resultUpdate){
+        return res.status(500).send({message : "internal error"})
+    }
+
+    return res.status(200).send(UsersMapper.toDTO(resultUpdate));
 
 })
 
@@ -161,21 +191,23 @@ usersController.delete("/:id", AuthService.authorize, (req: AuthentificatedReque
         return res.status(403).send({message : "Forbidden: You can only delete your own profile"})
     }
 
+    const targetUser = UsersService.getById(idUser);
+
+    if(!targetUser){
+        return res.status(404).send({ message: "User not found" }); 
+    }
+
+    if(targetUser.role === ERole.ADMIN){
+        return res.status(400).send({ message: "Cannot delete an admin account" });
+    }
+
     const result = UsersService.delete(idUser);
 
-    if(result === "NOT_FOUND"){
-        return res.status(404).send({message : "User not found"})
+    if(!result){
+        return res.status(404).send({message : "Internal error while deleting user"})
     }
 
-    if(result === "IS_ADMIN"){//VERIFIER SI CE N'EST PAS UNE ERREUR 403 OU 400
-        return res.status(400).send({message : "Forbidden: You cannot delete an admin account"})
-    }
-
-    if(result === false){
-        return res.status(500).send({message : "Internal error while deleting user"})
-    }
-
-    return res.status(200).send(result);
+    return res.status(200).send();
 })
 
 //PATCH CHANGE ROLE
@@ -193,7 +225,7 @@ usersController.patch("/:id/role/:role", AuthService.authorize, AuthService.isAd
         return res.status(400).send({message : "Invalid target role"})
     }
 
-    const targetUser = UsersService.getById(idUser, ERole.ADMIN) as UserDTO | undefined;
+    const targetUser = UsersService.getById(idUser);
 
     if(!targetUser){
         return res.status(404).send({ message: "User not found" });
@@ -203,13 +235,13 @@ usersController.patch("/:id/role/:role", AuthService.authorize, AuthService.isAd
         return res.status(400).send({ message: "Only players can be promoted" });
     }
 
-    const result = UsersService.changeRoles(idUser, roleUser)
+    const result = UsersService.updateRole(idUser, roleUser)
 
     if(!result){
-        return res.status(404).send({ message: "User not found" });
+        return res.status(500).send({ message: "Internal server error" });
     }
 
-    return res.status(200).send(result);
+    return res.status(200).send(UsersMapper.toDTO(result));
 
 })
 
@@ -223,10 +255,14 @@ usersController.patch("/:id/reactivate", AuthService.authorize, AuthService.isAd
         return res.status(400).send({message : "id must be a valid number"})
     }
 
-    const result = UsersService.reactivateUser(idUser);
+    const result = UsersService.reactivate(idUser);
+
+    if(result === "NOT_FOUND"){
+        return res.status(404).send({ message: "User not found or already active" });
+    }
 
     if(!result) {
-         return res.status(404).send({ message: "User not found" });
+        return res.status(500).send({ message: "Internal server error" });
     }
 
     return res.status(200).send();

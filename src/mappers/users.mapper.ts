@@ -1,59 +1,96 @@
-import { ERole, EUserStatus, NewUserDTO, UserDBO, UserDTO, UserShortDTO } from "../models/user.model";
-
-
-
+import { NewUser, NewUserDTO, UpdateUser, User, UserDBO, UserDTO, UserShortDTO } from "../models/user.model";
 
 export class UsersMapper {
-    public static toDTO(dto : UserDBO): UserDTO {
+    public static toDTO(domain: User): UserDTO {
         return {
-            id: dto.id,
-            firstName: dto.first_name,
-            lastName: dto.last_name,
-            email: dto.email,
-            username: dto.username,
-            role: dto.role,
-            status: dto.status,
-            createdAt: dto.created_at,
-            updatedAt: dto.updated_at,
+            id: domain.id,
+            firstName: domain.firstName,
+            lastName: domain.lastName,
+            email: domain.email,
+            username: domain.username,
+            role: domain.role,
+            status: domain.status,
+            createdAt: domain.createdAt.toISOString(),
+            updatedAt: domain.updatedAt.toISOString(),
         }
     }
 
-    public static toDBO(dbo: UserDTO, hashedPassword: string): UserDBO{
+    public static toDBO(domain: User): UserDBO {
+        return {
+            id: domain.id,
+            first_name: domain.firstName,
+            last_name: domain.lastName,
+            email: domain.email,
+            username: domain.username,
+            password: domain.password,
+            role: domain.role,
+            status: domain.status,
+            created_at: domain.createdAt.toISOString(),
+            updated_at: domain.updatedAt.toISOString(),
+            deleted_at: domain.deletedAt ? domain.deletedAt.toISOString() : undefined,
+        }
+    }
+
+
+    public static fromDBO(dbo: UserDBO): User {
         return {
             id: dbo.id,
-            first_name: dbo.firstName,
-            last_name: dbo.lastName,
+            firstName: dbo.first_name,
+            lastName: dbo.last_name,
             email: dbo.email,
             username: dbo.username,
-            password: hashedPassword,
+            password: dbo.password,
             role: dbo.role,
             status: dbo.status,
-            created_at: dbo.createdAt as string,
-            updated_at: dbo.updatedAt as string,
+            createdAt: new Date(dbo.created_at),
+            updatedAt: new Date(dbo.updated_at),
+            deletedAt: dbo.deleted_at ? new Date(dbo.deleted_at) : undefined,
         }
     }
 
-    public static fromNewDTO(newD: NewUserDTO, newId: number, newDate: string, hashedPassword: string): UserDBO {
+    public static fromDTO(domain: UserDTO): User {
         return {
-            id: newId,
-            first_name: newD.firstName,
-            last_name: newD.lastName,
-            email: newD.email,
-            username: newD.username,
-            password: hashedPassword,
-            role: ERole.PLAYER,
-            status: EUserStatus.ACTIVE,
-            created_at: newDate,
-            updated_at: newDate,
+            id: domain.id,
+            email: domain.email,
+            firstName: domain.firstName,
+            lastName: domain.lastName,
+            username: domain.username,
+            password: domain.password ?? "",
+            role: domain.role,
+            status: domain.status,
+            createdAt: domain.createdAt ? new Date(domain.createdAt) : new Date(),
+            updatedAt: domain.updatedAt ? new Date(domain.updatedAt) : new Date(),
+        }
+    }
+
+    public static fromNewDTO(dto: NewUserDTO): NewUser {
+        return {
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            email: dto.email,
+            username: dto.username,
+            password: dto.password,
         }
     } 
 
-
-    public static toShortDTO(short: UserDBO): UserShortDTO {
+    public static toShortDTO(domain: User): UserShortDTO {
         return {
-            id: short.id,
-            firstName: short.first_name,
-            lastName: short.last_name,
+            id: domain.id,
+            firstName: domain.firstName,
+            lastName: domain.lastName,
+        }
+    }
+
+
+    public static fromUpdateDTO(dto: UserDTO): UpdateUser {
+        return {
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            email: dto.email,
+            username: dto.username,
+            password: dto.password,
+            role: dto.role,
+            status: dto.status,
         }
     }
 }

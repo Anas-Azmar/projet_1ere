@@ -1,4 +1,4 @@
-import { BasicModelDBO, BasicModelDTO } from "./basicModel";
+import { BasicModel, BasicModelDBO, BasicModelDTO } from "./basicModel";
 
 
 export enum ERole {
@@ -24,6 +24,22 @@ export interface UserShortDTO {
     lastName: string
 }
 
+export interface UserShort {
+    id: number,
+    firstName : string,
+    lastName: string
+}
+
+export interface User extends BasicModel {
+    email: string;
+    firstName: string;
+    lastName: string;
+    username: string;
+    password: string;
+    role: ERole;
+    status: EUserStatus;
+}
+
 //NOT currently used, but jept for documentation purpose
 export interface UserFullDTO extends BasicModelDTO {
     firstName: string,
@@ -35,6 +51,7 @@ export interface UserFullDTO extends BasicModelDTO {
 }
 
 export interface UserDTO extends BasicModelDTO {
+    password?: string;
     firstName: string,
     lastName : string,
     email: string,
@@ -59,4 +76,23 @@ export interface NewUserDTO {
     email: string,
     username: string,
     password: string
+}
+
+export interface NewUser {
+    firstName : string,
+    lastName : string,
+    email: string,
+    username: string,
+    password: string
+}
+
+
+export interface UpdateUser {
+    firstName: string,
+    lastName: string,
+    email: string,
+    username: string,
+    password?: string,
+    role: ERole,
+    status: EUserStatus,
 }

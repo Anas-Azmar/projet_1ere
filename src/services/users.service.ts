@@ -1,7 +1,6 @@
 import { unescape } from "querystring";
 import { UsersMapper } from "../mappers/users.mapper";
-import { ERole, EUserStatus, NewUserDTO, UserDBO, UserDTO, UserShortDTO } from "../models/user.model";
-import { IdUtils } from "../utils/id";
+import { ERole, EUserStatus, NewUser, NewUserDTO, User, UserDBO, UserDTO, UserShort, UserShortDTO } from "../models/user.model";
 import { FilesService } from "./files.service";
 import { LoggerService } from "./logger.service";
 import bcrypt from 'bcrypt'
@@ -14,23 +13,55 @@ export class UsersService {
     private static readonly FILE_PATH = "./data/users.json";
 
 
+    //FIND NEXT ID
+        private static getNewID(items: User[]): number {
+        let maxId = 0;
+        if (items.length === 0) {
+          return 1;
+        }
+        for (const item of items) {
+          if (item.id > maxId) {
+            maxId = item.id;
+          }
+        }
+        return maxId + 1;
+      }
+    
+    
+        private static readDB(): User[] {
+            try {
+                const dbos = FilesService.readFile<UserDBO>(this.FILE_PATH) || [];
+                return dbos.map(dbo => UsersMapper.fromDBO(dbo));
+            } catch (error) {
+                LoggerService.error("Error to read files users.json");
+                return [];
+            }
+        }
+    
+        private static write(teams: User[]): boolean {
+            try {
+                const dbos = teams.map(dbo=> UsersMapper.toDBO(dbo))
+                FilesService.writeFile(this.FILE_PATH, dbos)
+                return true;
+            } catch (error) {
+                LoggerService.error("Error to write in users.json");
+                return false;
+            }
+    
+        }
+
+
 
     //GET ALL
-    public static getAll(requestRole : string): UserDTO[] | UserShortDTO[] | [] {
+    public static getAll(): User[] {
 
-        let userDBO : UserDBO[] = [];
-
+//admin a meme le droit a voir les personne inactive A FAIRE!!!!!
         try {
-            userDBO = FilesService.readFile<UserDBO>(this.FILE_PATH) || [];
+            const user = this.readDB();
 
-            const activesUsers = userDBO.filter(user => user.status === EUserStatus.ACTIVE);
+            const activesUsers = user.filter(user => user.status === EUserStatus.ACTIVE);
 
-            if(requestRole === ERole.ADMIN) {
-                return activesUsers.map(user => UsersMapper.toDTO(user));
-            } else {
-                return activesUsers.map(user => UsersMapper.toShortDTO(user));
-            }
-
+           return activesUsers;
         } catch (error) {
             LoggerService.error("cannot get all user");
             return [];
@@ -38,24 +69,19 @@ export class UsersService {
     }
 
     //GET BY ID
-    public static getById(id: number, requestRole: string): UserDTO | UserShortDTO | undefined {
+    public static getById(id: number): User | undefined {
 
-        let userDBO : UserDBO[] = [];
 
         try {
-            userDBO = FilesService.readFile<UserDBO>(this.FILE_PATH) || [];
+           const users = this.readDB();
 
-            const userId = userDBO.find(user => user.id === id && user.status === EUserStatus.ACTIVE);
+            const userId = users.find(user => user.id === id && user.status === EUserStatus.ACTIVE);
 
             if(!userId) {
                 return undefined;
             }
 
-            if (requestRole === ERole.ADMIN) {
-            return UsersMapper.toDTO(userId);
-        } else {
-            return UsersMapper.toShortDTO(userId);
-        }
+            return userId;
 
         } catch (error) {
             LoggerService.error("Error reading teams file in getById")
@@ -65,16 +91,19 @@ export class UsersService {
 
 
     //GET BY USERNAME
-    public static getByUserName(name: string): UserDTO | undefined {
-
-        let userDBO: UserDBO[] = [];
+    public static getByUserName(name: string): User | undefined {
 
         try {
-            userDBO = FilesService.readFile<UserDBO>(this.FILE_PATH) || [];
+            const users = this.readDB();
 
-            const userName = userDBO.find(user=> user.username === name && user.status === EUserStatus.ACTIVE)
+            const userName = users.find(user=> user.username === name && user.status === EUserStatus.ACTIVE)
 
-            return userName ? UsersMapper.toDTO(userName) : undefined;
+            if(!userName){
+                LoggerService.error("cannot find a user with this username")
+                return undefined;
+            }
+
+            return userName
         } catch (error) {
             LoggerService.error("cannot find user by his name")
             return undefined;
@@ -83,16 +112,19 @@ export class UsersService {
 
     //GET EMAIL
 
-    public static getByEmail(email : string) : UserDTO | undefined {
-
-         let userDBO : UserDBO[] = [];
+    public static getByEmail(email : string) : User | undefined {
 
          try {
-            userDBO = FilesService.readFile<UserDBO>(this.FILE_PATH) || [];
+            const users = this.readDB();
 
-            const userMail = userDBO.find(user => user.email === email && user.status === EUserStatus.ACTIVE);
+            const userMail = users.find(user => user.email === email && user.status === EUserStatus.ACTIVE);
 
-            return userMail ? UsersMapper.toDTO(userMail) : undefined
+            if(!userMail){
+                LoggerService.error("cannot find a user with this email")
+                return undefined;
+            }
+
+            return userMail;
 
          } catch (error) {
             LoggerService.error("cannot find user with this email")
@@ -101,32 +133,45 @@ export class UsersService {
     }
 
     //POST USER
-    public static create(newUser : NewUserDTO): UserDTO | undefined{
+    public static create(newUser : NewUser): User | undefined | "ALREADY_EXISTS"{
 
         try {
-            const userDBO = FilesService.readFile<UserDBO>(this.FILE_PATH) || [];
+            const users = this.readDB();
             
             const existingUserName = this.getByUserName(newUser.username);
             const existingEmail = this.getByEmail(newUser.email);
 
             if(existingUserName || existingEmail){
                 LoggerService.error("this name or email is already used")
-                return undefined;
+                return "ALREADY_EXISTS";
             }
 
-            const newId = IdUtils.generateNextId(userDBO);
+            const newId = this.getNewID(users)
 
             const hashedPassword = bcrypt.hashSync(newUser.password, 10);
 
-            const now = new Date().toISOString();
+            const newU : User = {
+                id: newId,
+                email: newUser.email,
+                firstName: newUser.firstName,
+                lastName: newUser.lastName,
+                username: newUser.username,
+                password: hashedPassword,
+                role: ERole.PLAYER,
+                status: EUserStatus.ACTIVE,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            }
 
-            const newU = UsersMapper.fromNewDTO(newUser,newId,now, hashedPassword);
+            users.push(newU);
 
-            userDBO.push(newU);
+            this.write(users)
 
-            FilesService.writeFile(this.FILE_PATH, userDBO);
+            if(!this.write(users)){
+                return undefined;
+            }
 
-            return UsersMapper.toDTO(newU);
+            return newU;
 
         } catch (error) {
             LoggerService.error("cannot create a new User")
@@ -135,31 +180,48 @@ export class UsersService {
     }
 
     //PUT USER
-    public static update(id: number, userUp: UserDTO): UserDTO | undefined {
-        
-        let userDBO : UserDBO[] = [];
+    public static update(id: number, updatedUser: User): User | undefined | "BAD_REQUEST" | "NOT_FOUND" {
 
         try {
-            userDBO = FilesService.readFile<UserDBO>(this.FILE_PATH) || [];
+            const users = this.readDB();
 
-            const indexUser = userDBO.findIndex(u => u.id === id && u.status === EUserStatus.ACTIVE);
+            const indexUser = users.findIndex(u => u.id === id && u.status === EUserStatus.ACTIVE);
 
             if(indexUser === -1){
                 LoggerService.error("cannot find this user")
+                return "NOT_FOUND";
+            }
+
+            const isTaken = users.some(u => u.id !== id && (u.email === updatedUser.email || u.username === updatedUser.username));
+            if (isTaken) {
+                return "BAD_REQUEST";
+            }
+
+            const oldUser = users[indexUser];
+            // S'il y a un mot de passe dans updatedUser, on le hache. Sinon, on garde l'ancien.
+            let finalPassword = oldUser.password;
+            if(updatedUser.password){
+                finalPassword = bcrypt.hashSync(updatedUser.password, 10);
+            }
+
+            users[indexUser] = {
+                id: oldUser.id,
+                firstName: updatedUser.firstName,
+                lastName: updatedUser.lastName,
+                email: updatedUser.email,
+                username: updatedUser.username,
+                password: finalPassword,
+                role: updatedUser.role,
+                status: updatedUser.status,
+                createdAt: oldUser.createdAt,
+                updatedAt: new Date(),
+            }
+
+            if(!this.write(users)) {
                 return undefined;
             }
 
-            const existingUser = userDBO[indexUser];
-
-            existingUser.first_name = userUp.firstName;
-            existingUser.last_name = userUp.lastName;
-            existingUser.email = userUp.email;
-            existingUser.username = userUp.username;
-            existingUser.updated_at = new Date().toISOString();
-
-            FilesService.writeFile(this.FILE_PATH, userDBO);
-
-            return UsersMapper.toDTO(existingUser);
+            return users[indexUser];
 
         } catch (error) {
         LoggerService.error("Error while updating user");
@@ -168,106 +230,74 @@ export class UsersService {
     }
 
     //DELETE USER
-    public static delete(id: number): boolean | "NOT_FOUND" | "IS_ADMIN" {
-
-        let userDBO : UserDBO[] = [];
+    public static delete(id: number): boolean {
 
         try {
-            userDBO = FilesService.readFile<UserDBO>(this.FILE_PATH) || [];
+            const users = this.readDB();
 
-            const idUser = userDBO.findIndex(u => u.id === id && u.status === EUserStatus.ACTIVE);
+            const indexUser = users.findIndex(user => user.id === id && user.deletedAt === undefined);
 
-            if(idUser === -1){
-                LoggerService.info("User ID not found");
-                return "NOT_FOUND";
-            }
-
-            if(userDBO[idUser].role === ERole.ADMIN){
-                LoggerService.error("Attempt to delete an admin account");
-                return "IS_ADMIN";
-            }
-
-            if(userDBO[idUser].status === EUserStatus.INACTIVE){
-                LoggerService.info("User already inactive, skipping");
+            if(indexUser === -1){
+                LoggerService.error("cannot find this user id");
                 return true;
             }
 
-            userDBO[idUser].status = EUserStatus.INACTIVE;
-            userDBO[idUser].deleted_at = new Date().toISOString();
+            users[indexUser].status = EUserStatus.INACTIVE;
+            users[indexUser].updatedAt = new Date();
+            users[indexUser].deletedAt = new Date()
 
-            FilesService.writeFile(this.FILE_PATH, userDBO);
+            return this.write(users);
 
-            return true;
         } catch (error) {
-            LoggerService.error("Error delete user")
+            LoggerService.error("Error deleting user");
             return false;
         }
     }
 
-
-    //PATCH CHANGE ROLE
-    public static changeRoles(id: number, newRole : ERole): UserDTO | undefined {
-
-        let userDBO : UserDBO[] = [];
-
+    //PATCH ROLE USER
+   public static updateRole(id: number, newRole: ERole): User | undefined {
         try {
-            userDBO = FilesService.readFile<UserDBO>(this.FILE_PATH) || [];
+            const users = this.readDB();
 
-            const indexUser = userDBO.findIndex(user => user.id === id && user.status === EUserStatus.ACTIVE);
+            const index = users.findIndex(u => u.id === id && u.status === EUserStatus.ACTIVE);
 
-            if(indexUser === -1){
-                LoggerService.error("cannot find this user id");
-                return undefined;
-            }
+            if (index === -1) return undefined;
 
-            const currentUser = userDBO[indexUser];
 
-            if(currentUser.role !== ERole.PLAYER){
-                LoggerService.error("only players can be pormoted")
-                return undefined;
-            }
+            users[index].role = newRole;
+            users[index].updatedAt = new Date();
 
-            currentUser.role = newRole;
-            currentUser.updated_at = new Date().toISOString();
+           
+            if (!this.write(users)) return undefined;
 
-            FilesService.writeFile(this.FILE_PATH, userDBO);
-
-            return UsersMapper.toDTO(currentUser);
+            return users[index];
         } catch (error) {
-            LoggerService.error("Error patch user role");
+            LoggerService.error("Erreur lors de la mise à jour du rôle");
             return undefined;
         }
     }
 
-    //PATCH REACTIVATE USER
-    public static reactivateUser(id: number): UserDTO | undefined {
 
-        let userDBO: UserDBO[] = [];
-
+    //PATCH REACTIVE USER
+    public static reactivate(id: number): User | "NOT_FOUND" | undefined {
         try {
-            userDBO = FilesService.readFile<UserDBO>(this.FILE_PATH) || [];
+            const users = this.readDB();
+            // Attention : ici on cherche spécifiquement un utilisateur INACTIF
+            const index = users.findIndex(u => u.id === id && u.status === EUserStatus.INACTIVE);
 
-            const indexUser = userDBO.findIndex(user => user.id === id && user.status === EUserStatus.INACTIVE);
+            if (index === -1) return "NOT_FOUND";
 
-            if(indexUser === -1){
-                LoggerService.error("can't find user");
-                return undefined;
-            }
+            // On remet le statut à ACTIVE et on "nettoie" la date de suppression
+            users[index].status = EUserStatus.ACTIVE;
+            users[index].deletedAt = undefined; 
+            users[index].updatedAt = new Date();
 
-            const currentUser = userDBO[indexUser];
+            if (!this.write(users)) return undefined;
 
-            currentUser.status = EUserStatus.ACTIVE;
-            currentUser.updated_at = new Date().toISOString();
-            currentUser.deleted_at = undefined;
-
-            FilesService.writeFile(this.FILE_PATH, userDBO);
-
-            return UsersMapper.toDTO(currentUser);
-
+            return users[index];
         } catch (error) {
-            LoggerService.error("Error patch user status");
+            LoggerService.error("Erreur lors de la réactivation de l'utilisateur");
             return undefined;
         }
     }
-
 }

@@ -1,4 +1,4 @@
-import { BasicModelDBO, BasicModelDTO } from "./basicModel";
+import { BasicModel, BasicModelDBO, BasicModelDTO } from "./basicModel";
 import { UserShortDTO } from "./user.model";
 
 
@@ -9,6 +9,15 @@ export enum ESportType {
     VOLLEYBALL = "volleyball",
     HANDBALL = "handball"
 }
+
+export interface Team extends BasicModel {
+    name : string,
+    description: string,
+    sportType: ESportType,
+    players: number[],
+    trainerId?: number,
+}
+
 
 export interface TeamShortDTO{
     id: number,
@@ -21,7 +30,7 @@ export interface TeamDTO extends BasicModelDTO {
     description: string,
     sportType: ESportType,
     players: number[],
-    trainerId: number | null,
+    trainerId?: number,
 }
 
 export interface TeamFullDTO extends BasicModelDTO {
@@ -38,11 +47,18 @@ export interface NewTeamDTO {
     sportType: ESportType,
 }
 
+export interface NewTeam {
+    name: string,
+    description?: string,
+    sportType: ESportType,
+}
+
+
 export interface TeamDBO extends BasicModelDBO {
     name: string,
     description: string,
     sport_type: ESportType,
     players: number[],
-    trainer_id: number | null,
+    trainer_id?: number,
 }
 

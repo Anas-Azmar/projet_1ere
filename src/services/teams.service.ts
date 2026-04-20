@@ -1,7 +1,6 @@
 import { TeamsMapper } from "../mappers/teams.mapper";
-import { NewTeamDTO, TeamDBO, TeamDTO, TeamFullDTO, TeamShortDTO } from "../models/team.model";
-import { ERole, UserShortDTO } from "../models/user.model";
-import { IdUtils } from "../utils/id";
+import { NewTeam, NewTeamDTO, Team, TeamDBO, TeamDTO, TeamFullDTO, TeamShortDTO } from "../models/team.model";
+import { ERole, User, UserShortDTO } from "../models/user.model";
 import { FilesService } from "./files.service";
 import { LoggerService } from "./logger.service";
 import { UsersService } from "./users.service";
@@ -17,65 +16,90 @@ export class TeamsService {
 
     private static readonly FILE_PATH = './data/teams.json';
 
-    //GET ALL AND RETURN SHORTDTO
-    public static getAll(): TeamShortDTO[] | undefined {
+    //FIND NEXT ID
+    private static getNewID(items: Team[]): number {
+    let maxId = 0;
+    if (items.length === 0) {
+      return 1;
+    }
+    for (const item of items) {
+      if (item.id > maxId) {
+        maxId = item.id;
+      }
+    }
+    return maxId + 1;
+  }
 
-        let teamsDBO : TeamDBO[] = [];
 
+    private static readDB(): Team[] {
         try {
-            teamsDBO = FilesService.readFile<TeamDBO>(this.FILE_PATH) || [];
-
-            let teams : TeamShortDTO[] = [];
-            for(const t of teamsDBO) {
-                teams.push(TeamsMapper.toShortDTO(t));
-            }
-
-            return teams;
+            const dbos = FilesService.readFile<TeamDBO>(this.FILE_PATH) || [];
+            return dbos.map(dbo => TeamsMapper.fromDBO(dbo));
         } catch (error) {
-            LoggerService.error("Error getting all teams");
-            return undefined;
+            LoggerService.error("Error to read files teams.json");
+            return [];
         }
+    }
+
+    private static write(teams: Team[]): boolean {
+        try {
+            const dbos = teams.map(dbo=> TeamsMapper.toDBO(dbo))
+            FilesService.writeFile(this.FILE_PATH, dbos)
+            return true;
+        } catch (error) {
+            LoggerService.error("Error to write in teams.json");
+            return false;
+        }
+
+    }
+
+    //GET ALL
+    public static getAll(): Team[] {
+        return this.readDB();
+        
     }
 
 
     //
-    public static getMyTeams(userId : number): TeamFullDTO[] | undefined {
+    public static getMyTeams(userId : number): { team: Team, trainer: User | undefined, players: User[] }[] | undefined {
 
-        let teamsDBO : TeamDBO[] = [];
-        
         try {
-            teamsDBO = FilesService.readFile<TeamDBO>(this.FILE_PATH) || [];
+            const teams = this.readDB();
 
-            const userTeams = teamsDBO.filter(teams => teams.trainer_id === userId || teams.players.includes(userId));
+            const userTeams = teams.filter(teams => teams.trainerId === userId || teams.players.includes(userId));
 
-            if(!userTeams){
+            if(userTeams.length === 0){
                 LoggerService.error("cannot find a teams with this id");
                 return [];
             }
 
-            const fullTeams : TeamFullDTO[] = [];
+            //list of all
+            const fullTeams = [];
 
             for(const team of userTeams){
 
-                if(!team.trainer_id){
+                if(!team.trainerId){
                     LoggerService.error("cannot find a trainer for this team");
                     continue;
                 }
 
-                const trainer = UsersService.getById(team.trainer_id, ERole.PLAYER) as UserShortDTO;
+                const trainer = UsersService.getById(team.trainerId);
 
-                const listPlayer : UserShortDTO[] = [];
+                const listPlayer : User[] = [];
 
                 for(const playerId of team.players){
-                    const player = UsersService.getById(playerId, ERole.PLAYER) as UserShortDTO;
+                    const player = UsersService.getById(playerId);
 
                     if(player){
                         listPlayer.push(player);
                     }
                 }
                 
-                const teamDTO = TeamsMapper.FullTeams(team, trainer, listPlayer)
-                fullTeams.push(teamDTO);
+                fullTeams.push({
+                    team: team,
+                    trainer: trainer,
+                    players : listPlayer
+                })
                 
             }
 
@@ -89,66 +113,64 @@ export class TeamsService {
 
     }
     //GET BY ID
-    public static getById(id: number): TeamDTO | undefined {
-
-        let teamsDBO : TeamDBO[] = [];
+    public static getById(id: number): Team | undefined {
 
         try {
-            teamsDBO = FilesService.readFile<TeamDBO>(this.FILE_PATH) || [];
+            const team = this.readDB();
 
-            const targetTeam = teamsDBO.find(team => team.id === id);
+            return team.find(team => team.id === id && team.deletedAt === undefined)
 
-            if(!targetTeam){
-                LoggerService.error("cannot find a team with this id");
-                return undefined;
-            }
-
-            return TeamsMapper.toDTO(targetTeam);
+            
         } catch (error) {
-            LoggerService.error("Error reading teams file in getById")
+            
+         LoggerService.error("Error reading teams file in getById")
             return undefined;
         }
     }
 
 
     //GET BY NAME (use for the POST method)
-    public static getByName(name: string): boolean{
+    public static getByName(name: string): Team | undefined{
 
-        let teamsDBO : TeamDBO[] = [];
+        const teams = this.readDB();
 
-       teamsDBO = FilesService.readFile<TeamDBO>(this.FILE_PATH) || [];
-
-        const isPresent = teamsDBO.find(n => n.name === name)
-
-        return  isPresent !== undefined;
+       return teams.find(t => t.name.toLowerCase() === name.toLocaleLowerCase() && t.deletedAt === undefined)
 
     }
 
 
     //POST TEAMS
-    public static create(newTeam: NewTeamDTO, trainerId : number): TeamDTO | undefined {
-
-        let teamsDBO: TeamDBO[] = [];
+    public static create(newTeam: NewTeam, trainerId : number): Team | undefined | "ALREADY_EXISTS"{
 
         try {
-            teamsDBO = FilesService.readFile<TeamDBO>(this.FILE_PATH) || [];
+           const teams = this.readDB();
 
-            if(TeamsService.getByName(newTeam.name)){
+            if(this.getByName(newTeam.name)){
                 LoggerService.error("a team with this name already exist")
+                return "ALREADY_EXISTS";
+            }
+
+            const newTeamId = this.getNewID(teams)
+
+            const newerTeam: Team = {
+                id: newTeamId,
+                name: newTeam.name,
+                description: newTeam.description || "",
+                sportType: newTeam.sportType,
+                players: [],
+                trainerId: trainerId,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            }
+
+            teams.push(newerTeam);
+
+            if(!this.write(teams)){
                 return undefined;
             }
 
-            const newTeamId = IdUtils.generateNextId(teamsDBO);
+            return newerTeam;
 
-            const newDate = new Date().toISOString();
-
-            const team = TeamsMapper.fromNewDTO(newTeam, newTeamId, trainerId, newDate);
-
-            teamsDBO.push(team);
-
-            FilesService.writeFile(this.FILE_PATH, teamsDBO);
-
-            return TeamsMapper.toDTO(team);
         } catch (error) {
             LoggerService.error("cannot create a new Team")
             return undefined;
@@ -157,39 +179,40 @@ export class TeamsService {
 
 
     //PUT TEAMS
-    public static update(id: number, teamUp: TeamDTO): TeamDTO | undefined | "TEAM_NAME_ALREADY_TAKEN" {
+    public static update(id: number, teamUp: Team): Team | undefined | "TEAM_NAME_ALREADY_TAKEN" {
 
-        let teamsDBO : TeamDBO[] = [];
-        
         try {
-            teamsDBO = FilesService.readFile<TeamDBO>(this.FILE_PATH) || [];
+            const teams = this.readDB();
 
-            const indexTeam = teamsDBO.findIndex(team => team.id === id);
+            const indexTeam = teams.findIndex(team => team.id === id);
             
             if(indexTeam === -1){
                 LoggerService.error("cannot find team id");
                 return undefined;
             }
-
-            const nameAlreadyTaken = teamsDBO.some(team => team.name === teamUp.name && team.id !== id);
+            //some = boolean
+            const nameAlreadyTaken = teams.some(team => team.name === teamUp.name && team.id !== id);
 
             if(nameAlreadyTaken){
                 LoggerService.error("the name is already taken by another team")
                 return "TEAM_NAME_ALREADY_TAKEN";
             }
 
-            const updatedTeam = teamsDBO[indexTeam];
+            const updatedTeam = teams[indexTeam];
+            
 
             updatedTeam.name = teamUp.name;
             updatedTeam.description = teamUp.description;
-            updatedTeam.sport_type = teamUp.sportType;
+            updatedTeam.sportType = teamUp.sportType;
             updatedTeam.players = teamUp.players;
-            updatedTeam.trainer_id = teamUp.trainerId;
-            updatedTeam.updated_at = new Date().toISOString();
+            updatedTeam.trainerId = teamUp.trainerId;
+            updatedTeam.updatedAt = new Date();
 
-            FilesService.writeFile(this.FILE_PATH, teamsDBO);
+            if(!this.write(teams)){
+                return undefined
+            }
 
-            return TeamsMapper.toDTO(updatedTeam);
+            return updatedTeam;
 
         } catch (error) {
             LoggerService.error("error while updating team")
@@ -200,21 +223,19 @@ export class TeamsService {
 
     //PATCH JOIN TEAM
 
-    public static joinTeam(teamId: number, userId: number): TeamDTO | "NOT_FOUND" | "ALREADY_IN_TEAM" | undefined {
-
-        let teamsDBO : TeamDBO[] = [];
+    public static joinTeam(teamId: number, userId: number): Team | "NOT_FOUND" | "ALREADY_IN_TEAM" | undefined {
         
         try {
-            teamsDBO = FilesService.readFile<TeamDBO>(this.FILE_PATH) || [];
+            const teams = this.readDB();
 
-            const indexTeam = teamsDBO.findIndex(team => team.id === teamId);
+            const indexTeam = teams.findIndex(team => team.id === teamId);
 
             if(indexTeam === -1){
                 LoggerService.error("team not found")
                 return "NOT_FOUND";
             }
 
-            const targetTeam = teamsDBO[indexTeam];
+            const targetTeam = teams[indexTeam];
 
             if(targetTeam.players.includes(userId)){
                 LoggerService.error("this user is already in team")
@@ -222,13 +243,13 @@ export class TeamsService {
             }
 
             targetTeam.players.push(userId);
-            targetTeam.updated_at = new Date().toISOString();
+            targetTeam.updatedAt = new Date();
 
-            FilesService.writeFile(this.FILE_PATH, teamsDBO);
+            if(!this.write(teams)){
+                return undefined;
+            }
 
-            return TeamsMapper.toDTO(targetTeam);
-
-
+            return targetTeam;
         } catch (error) {
             LoggerService.error("Error while joining team");
             return undefined;
@@ -237,21 +258,19 @@ export class TeamsService {
 
 
     //PATCH LEAVE TEAM
-    public static leaveTeam(idUser: number, teamId : number): TeamDTO | "TEAM_NOT_FOUND" | "USER_NOT_FOUND" | undefined{
-
-        let teamsDBO : TeamDBO[] = [];
+    public static leaveTeam(idUser: number, teamId : number): Team | "TEAM_NOT_FOUND" | "USER_NOT_FOUND" | undefined{
 
         try {
-            teamsDBO = FilesService.readFile<TeamDBO>(this.FILE_PATH) || [];
+            const teams = this.readDB();
 
-            const teamIndex = teamsDBO.findIndex(team => team.id === teamId);
+            const teamIndex = teams.findIndex(team => team.id === teamId);
 
             if(teamIndex === -1){
                 LoggerService.error("team not found");
                 return "TEAM_NOT_FOUND";
             }
 
-            const targetTeam = teamsDBO[teamIndex];
+            const targetTeam = teams[teamIndex];
 
             if(!targetTeam.players.includes(idUser)){
                 LoggerService.error("user does not exist")
@@ -259,11 +278,13 @@ export class TeamsService {
             }
             //return only players does not have the id we want to remove
             targetTeam.players = targetTeam.players.filter(id => id !== idUser);
-            targetTeam.updated_at = new Date().toISOString();
+            targetTeam.updatedAt = new Date();
 
-            FilesService.writeFile(this.FILE_PATH, teamsDBO);
+            if(!this.write(teams)){
+                return undefined;
+            }
 
-            return TeamsMapper.toDTO(targetTeam);
+            return targetTeam;
         } catch (error) {
             LoggerService.error("Error while leaving team");
             return undefined;
