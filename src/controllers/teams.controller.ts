@@ -34,12 +34,17 @@ teamsController.get("/own", AuthService.authorize, (req: AuthentificatedRequest,
 
     const result = TeamsService.getMyTeams(userId);
 
-    if(!result){
+    if(!result || result.length === 0){
         return res.status(404).send({ message: "team not found" });
     }
 
+    const userTeam = result[0];
 
-    return res.status(200).send(TeamsMapper.toFullDTO(result));//A faire plus tard
+    return res.status(200).send(TeamsMapper.toFullDTO(
+        userTeam.team,
+        UsersMapper.toShortDTO(userTeam.trainer),
+        userTeam.players.map(player => UsersMapper.toShortDTO(player))
+    ));
 })
 
 //GET TEAMS ID

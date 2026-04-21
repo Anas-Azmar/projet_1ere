@@ -119,7 +119,7 @@ gamesController.delete("/:id", AuthService.authorize , AuthService.isAdmin, (req
 
 
 //PATCH SET SCORE
-gamesController.patch("/:id/:home/:away",AuthService.authorize ,AuthService.isReferee, (req: AuthentificatedRequest, res: Response) => {
+gamesController.patch("/:id/score/:home/:away",AuthService.authorize ,AuthService.isReferee, (req: AuthentificatedRequest, res: Response) => {
 
     const id = Number(req.params.id);
     const homeScore = Number(req.params.home);
@@ -150,6 +150,7 @@ gamesController.patch("/:id/status/:status", AuthService.authorize, AuthService.
 
     const id = Number(req.params.id);
     const status = req.params.status;
+    console.log("Received request to update game status. ID:", id, "Status:", status);
 
     if(!isNumber(id) || Number.isNaN(id)){
         return res.status(400).send({message : "invalid id"})

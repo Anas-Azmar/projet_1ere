@@ -61,7 +61,7 @@ export class TeamsService {
 
 
     //
-    public static getMyTeams(userId : number): { team: Team, trainer: User | undefined, players: User[] }[] | undefined {
+    public static getMyTeams(userId : number): { team: Team, trainer: User, players: User[] }[] | undefined {
 
         try {
             const teams = this.readDB();
@@ -84,6 +84,10 @@ export class TeamsService {
                 }
 
                 const trainer = UsersService.getById(team.trainerId);
+                if(trainer === undefined){
+                    LoggerService.error("cannot find a trainer for this team");
+                    continue;
+                }
 
                 const listPlayer : User[] = [];
 

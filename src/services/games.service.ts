@@ -58,8 +58,6 @@ export class GamesService {
 
             const today = new Date();
 
-            today.setHours(0,0,0,0);
-
             const upComingGames = games.filter(game => game.scheduledDate !== undefined && game.scheduledDate >= today)
 
            return upComingGames;
@@ -95,6 +93,13 @@ export class GamesService {
 
         try {
             const games = this.readDB();
+
+            const today = new Date();
+
+            if(game.scheduledDate && today > new Date(game.scheduledDate)){
+                LoggerService.error("scheduled date must be in the future")
+                return undefined;
+            }
 
             const isPresent = game.fieldId != null && game.scheduledDate != null;
 
@@ -143,6 +148,8 @@ export class GamesService {
             const games = this.readDB();
 
             const gameIndex = games.findIndex(game => game.id === id && game.deletedAt === undefined);
+
+
             
             if(gameIndex === -1){
                 LoggerService.error("cannot find this id game")
@@ -229,7 +236,8 @@ export class GamesService {
 
             const gameToUpdate = games[gameIndex]
 
-            if(gameToUpdate.status !== EGameStatus.STARTED){
+            console.log("Game status for setting score:", gameToUpdate.status);
+            if(gameToUpdate.status.toLocaleLowerCase() !== EGameStatus.STARTED){
                 LoggerService.error("Game is not started, cannot set score")
                 return undefined;
             }
@@ -267,8 +275,7 @@ export class GamesService {
 
             let isAllowed = false;
 
-
-            switch (game.status) {
+            switch (game.status.toLocaleLowerCase()) {
                 case EGameStatus.CREATED:
                     if(newStatus === EGameStatus.CANCELLED) {
                         isAllowed = true;
@@ -278,7 +285,15 @@ export class GamesService {
                     if (newStatus === EGameStatus.CANCELLED) {
                         isAllowed = true;
                     } else if (newStatus === EGameStatus.STARTED) {
-                        if (!game.fieldId || !game.refereeId || !game.homeTeamId || !game.awayTeamId || game.homeScore !== 0 || game.awayScore !== 0) {
+                        console.log("Checking prerequisites for starting the game:", {
+                            fieldId: game.fieldId,
+                            refereeId: game.refereeId,
+                            homeTeamId: game.homeTeamId,
+                            awayTeamId: game.awayTeamId,
+                            homeScore: game.homeScore,
+                            awayScore: game.awayScore
+                        });
+                        if (game.fieldId === undefined || game.refereeId === undefined || game.homeTeamId === undefined || game.awayTeamId === undefined || game.homeScore !== 0 || game.awayScore !== 0) {
                             LoggerService.error("Missing prerequisites to start game");
                             return "BAD_REQUEST"; 
                         }

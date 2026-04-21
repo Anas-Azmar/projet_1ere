@@ -187,6 +187,7 @@ export class UsersService {
 
             const indexUser = users.findIndex(u => u.id === id && u.status === EUserStatus.ACTIVE);
 
+            console.log("Index of user to update:", indexUser, id);
             if(indexUser === -1){
                 LoggerService.error("cannot find this user")
                 return "NOT_FOUND";

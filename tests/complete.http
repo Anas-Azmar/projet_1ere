@@ -1,0 +1,114 @@
+###
+# Complete API Test Coverage
+# Tests all fixed controller routes matching the scenarios
+#
+
+@server = http://127.0.0.1:3000
+@adminuser = admin
+@adminpassword = admin
+
+###
+### AUTHENTICATION TESTS
+###
+
+## Login as admin
+# @name admin_login
+POST {{server}}/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "{{adminuser}}",
+  "password": "{{adminpassword}}"
+}
+
+###
+### FIELDS ROUTES TESTS
+### Testing: GET /fields, GET /fields/:id, POST /fields, PUT /fields/:id
+###
+
+## Get all fields (PUBLIC)
+GET {{server}}/fields HTTP/1.1
+
+###
+## Get field by ID (PUBLIC)
+GET {{server}}/fields/1 HTTP/1.1
+
+###
+## Create new field (ADMIN ONLY)
+# @name newfield
+POST {{server}}/fields HTTP/1.1
+Content-Type: application/json
+Authorization: {{admin_login.response.body.token}}
+
+{
+  "name": "Test Field A",
+  "location": "Test Location"
+}
+
+###
+## Update field (ADMIN ONLY)
+PUT {{server}}/fields/{{newfield.response.body.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: {{admin_login.response.body.token}}
+
+{
+  "id": {{newfield.response.body.id}},
+  "name": "Test Field A Updated",
+  "location": "Updated Location"
+}
+
+###
+## Delete field (ADMIN ONLY)
+DELETE {{server}}/fields/{{newfield.response.body.id}} HTTP/1.1
+Authorization: {{admin_login.response.body.token}}
+
+###
+### GAMES ROUTES TESTS (CORRECTED)
+### Testing PATCH /games/:id/score/:home/:away (FIXED ROUTE)
+###
+
+## Get all games (PUBLIC)
+GET {{server}}/games HTTP/1.1
+
+###
+## Get game by ID (PUBLIC)
+GET {{server}}/games/1 HTTP/1.1
+
+###
+### TEAMS ROUTES TESTS
+###
+
+## Get all teams (PUBLIC)
+GET {{server}}/teams HTTP/1.1
+
+###
+## Get team by ID (PUBLIC)
+GET {{server}}/teams/1 HTTP/1.1
+
+###
+## Get user's own teams (AUTHENTICATED)
+GET {{server}}/teams/own HTTP/1.1
+Authorization: {{admin_login.response.body.token}}
+
+###
+### USERS ROUTES TESTS
+###
+
+## Get all users (AUTHENTICATED)
+GET {{server}}/users HTTP/1.1
+Authorization: {{admin_login.response.body.token}}
+
+###
+## Get user by ID (AUTHENTICATED)
+GET {{server}}/users/1 HTTP/1.1
+Authorization: {{admin_login.response.body.token}}
+
+###
+## Search user by username (AUTHENTICATED)
+GET {{server}}/users/username/admin HTTP/1.1
+Authorization: {{admin_login.response.body.token}}
+
+###
+## Search user by email (AUTHENTICATED)
+GET {{server}}/users/email/admin@vinci.be HTTP/1.1
+Authorization: {{admin_login.response.body.token}}

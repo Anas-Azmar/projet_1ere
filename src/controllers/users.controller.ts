@@ -141,7 +141,7 @@ usersController.put("/:id", AuthService.authorize, (req: AuthentificatedRequest,
     }
     //Authenticated user is not an admin and tries to update another user
     if(currentUser.role !== ERole.ADMIN && currentUser.id !== idUser){
-        return res.status(403).send("only admin can update their own account")
+        return res.status(403).send("only admin can update other account")
     }
     //L'ID de l'URL doit matcher avec l'ID dans le Body
     if(currentUser.id !== idUser){//a verifier

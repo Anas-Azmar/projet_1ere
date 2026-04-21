@@ -20,7 +20,7 @@ authController.post("/login", (req : Request, res: Response) => {
     }
 
     const authResult = AuthService.login(loginData.username, loginData.password);
-    
+
     if(!authResult){
         return res.status(401).send({message : "Invalid Credentials"});
     }

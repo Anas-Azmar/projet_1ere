@@ -1,21 +1,15 @@
 import { NextFunction, Response} from "express";
 import { AuthentificatedRequest, AuthentificatedUserDTO } from "../models/auth.model";
-import { ERole, EUserStatus, UserDBO } from "../models/user.model";
+import { ERole} from "../models/user.model";
 import { generateFakeToken, validateFakeToken } from "../utils/auth";
-import { FilesService } from "./files.service";
 import { LoggerService } from "./logger.service";
 import { UsersService } from "./users.service";
 import bcrypt from "bcrypt"
 import { isString } from "../utils/guards";
-import { Game, GameDBO } from "../models/game.model";
-import { GamesMapper } from "../mappers/games.mapper";
 
 
 
 export class AuthService {
-
-    private static readonly FILE_PATH = "./data/users.json";
-
 
     //token-token
     static login(userName : string, mdp: string): AuthentificatedUserDTO | undefined {
