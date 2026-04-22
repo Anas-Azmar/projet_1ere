@@ -53,15 +53,17 @@ export class UsersService {
 
 
     //GET ALL
-    public static getAll(): User[] {
+    public static getAll(includeInactive : boolean = false): User[] {
 
-//admin a meme le droit a voir les personne inactive A FAIRE!!!!!
         try {
-            const user = this.readDB();
+            const users = this.readDB();
 
-            const activesUsers = user.filter(user => user.status === EUserStatus.ACTIVE);
+            if(includeInactive){
+                return users
+            } else {
+                return users.filter(user => user.status === EUserStatus.ACTIVE)
+            }
 
-           return activesUsers;
         } catch (error) {
             LoggerService.error("cannot get all user");
             return [];
@@ -91,15 +93,20 @@ export class UsersService {
 
 
     //GET BY USERNAME
-    public static getByUserName(name: string): User | undefined {
+    public static getByUserName(name: string, includeInactive : boolean = false): User | undefined {
 
         try {
             const users = this.readDB();
 
-            const userName = users.find(user=> user.username === name && user.status === EUserStatus.ACTIVE)
+            const userName = users.find(user=> {
+                if(includeInactive){
+                    return user.username === name
+                } else {
+                    return user.username === name && user.status === EUserStatus.ACTIVE
+                }
+            })
 
             if(!userName){
-                LoggerService.error("cannot find a user with this username")
                 return undefined;
             }
 
@@ -112,12 +119,18 @@ export class UsersService {
 
     //GET EMAIL
 
-    public static getByEmail(email : string) : User | undefined {
+    public static getByEmail(email : string, includeInactive : boolean = false) : User | undefined {
 
          try {
             const users = this.readDB();
 
-            const userMail = users.find(user => user.email === email && user.status === EUserStatus.ACTIVE);
+            const userMail = users.find(user => {
+                if(includeInactive){
+                    return user.email
+                } else {
+                    return user.email && user.status === EUserStatus.ACTIVE;
+                }
+            });
 
             if(!userMail){
                 LoggerService.error("cannot find a user with this email")
@@ -138,8 +151,8 @@ export class UsersService {
         try {
             const users = this.readDB();
             
-            const existingUserName = this.getByUserName(newUser.username);
-            const existingEmail = this.getByEmail(newUser.email);
+            const existingUserName = this.getByUserName(newUser.username, true);
+            const existingEmail = this.getByEmail(newUser.email, true);
 
             if(existingUserName || existingEmail){
                 LoggerService.error("this name or email is already used")
@@ -199,21 +212,16 @@ export class UsersService {
             }
 
             const oldUser = users[indexUser];
-            // S'il y a un mot de passe dans updatedUser, on le hache. Sinon, on garde l'ancien.
-            let finalPassword = oldUser.password;
-            if(updatedUser.password){
-                finalPassword = bcrypt.hashSync(updatedUser.password, 10);
-            }
-
+           
             users[indexUser] = {
                 id: oldUser.id,
                 firstName: updatedUser.firstName,
                 lastName: updatedUser.lastName,
                 email: updatedUser.email,
                 username: updatedUser.username,
-                password: finalPassword,
-                role: updatedUser.role,
-                status: updatedUser.status,
+                password: oldUser.password,
+                role: oldUser.role,
+                status: oldUser.status,
                 createdAt: oldUser.createdAt,
                 updatedAt: new Date(),
             }

@@ -271,9 +271,9 @@ Content-Type: application/json
 }
 
 ###
-# Non-admin cannot delete user
-#
-DELETE {{server}}/users/2 HTTP/1.1
+# Non-admin cannot delete user - a verifier!!!!!!!!
+# 
+DELETE {{server}}/users/1 HTTP/1.1
 Authorization: {{player_login.response.body.token}}
 
 ###
@@ -284,7 +284,7 @@ DELETE {{server}}/users/2 HTTP/1.1
 ###
 # Admin can soft-delete user
 #
-DELETE {{server}}/users/5 HTTP/1.1
+DELETE {{server}}/users/6 HTTP/1.1
 Authorization: {{admin_login.response.body.token}}
 
 ###
@@ -294,7 +294,7 @@ DELETE {{server}}/users/1 HTTP/1.1
 Authorization: {{admin_login.response.body.token}}
 
 ###
-# Admins can search by username
+# Admins can search by username 
 #
 GET {{server}}/users/username/admin HTTP/1.1
 Authorization: {{admin_login.response.body.token}}
@@ -302,7 +302,7 @@ Authorization: {{admin_login.response.body.token}}
 ###
 # Refs can search by username
 #
-GET {{server}}/users/username/admin HTTP/1.1
+GET {{server}}/users/username/yassin HTTP/1.1
 Authorization: {{ref_login.response.body.token}}
 
 ###
@@ -332,13 +332,13 @@ Authorization: {{player_login.response.body.token}}
 ###
 # Admin cannot change role of non-player
 #
-PATCH {{server}}/users/3/role/admin HTTP/1.1
+PATCH {{server}}/users/1/role/player HTTP/1.1
 Authorization: {{admin_login.response.body.token}}
 
 ###
 # User cannot change user role
 #
-PATCH {{server}}/users/2/role/trainer HTTP/1.1
+PATCH {{server}}/users/1/role/trainer HTTP/1.1
 Authorization: {{player_login.response.body.token}}
 
 
@@ -352,13 +352,13 @@ Authorization: {{admin_login.response.body.token}}
 ###
 # Admin can reactivate user
 #
-PATCH {{server}}/users/5/reactivate HTTP/1.1
+PATCH {{server}}/users/2/reactivate HTTP/1.1
 Authorization: {{admin_login.response.body.token}}
 
 ###
 # User cannot reactivate user
 #
-PATCH {{server}}/users/2/reactivate HTTP/1.1
+PATCH {{server}}/users/6/reactivate HTTP/1.1
 Authorization: {{ref_login.response.body.token}}
 
 ###

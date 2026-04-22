@@ -86,7 +86,7 @@ GET {{server}}/teams HTTP/1.1
 GET {{server}}/teams/1 HTTP/1.1
 
 ###
-## Get user's own teams (AUTHENTICATED)
+## Get user's own teams (AUTHENTICATED) ----- a verifier si la team exist
 GET {{server}}/teams/own HTTP/1.1
 Authorization: {{admin_login.response.body.token}}
 
@@ -105,10 +105,10 @@ Authorization: {{admin_login.response.body.token}}
 
 ###
 ## Search user by username (AUTHENTICATED)
-GET {{server}}/users/username/admin HTTP/1.1
+GET {{server}}/users/username/player HTTP/1.1
 Authorization: {{admin_login.response.body.token}}
 
 ###
 ## Search user by email (AUTHENTICATED)
-GET {{server}}/users/email/admin@vinci.be HTTP/1.1
+GET {{server}}/users/email/trainer3@vinci.be HTTP/1.1
 Authorization: {{admin_login.response.body.token}}

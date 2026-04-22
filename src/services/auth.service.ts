@@ -63,7 +63,7 @@ export class AuthService {
 
         const user = UsersService.getByUserName(username);
         if(!user){
-            return res.status(401).send({message : "User not found"})
+            return res.status(401).send({message : "User not found or inactive"})
         }
 
         req.user = user;
@@ -103,7 +103,6 @@ public static isAdminOrReferee(req: AuthentificatedRequest, res: Response, next:
     if(!req.user){
         return res.status(401).send({message : "User not logged in"});
     }
-
    
     if(req.user.role !== ERole.ADMIN && req.user.role !== ERole.REFEREE){
         return res.status(403).send({message : "Only admin or referee can do this"});

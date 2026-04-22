@@ -37,7 +37,7 @@ GET {{server}}/fields
 
 ###
 # GET BY ID
-GET {{server}}/fields/1
+GET {{server}}/fields/2
 
 ###
 # Non-admin users cannot create fields.

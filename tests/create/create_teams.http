@@ -26,7 +26,7 @@ Content-Type: application/json
 Authorization: {{trainer_login.response.body.token}}
 
 {
-    "name": "Football Club Bruxelles",
+    "name": "Football Club Bruxelle",
     "description": "A nice team",
     "sportType": "football"
 }
@@ -36,7 +36,7 @@ Content-Type: application/json
 Authorization: {{trainer_login.response.body.token}}
 
 {
-    "name": "Football Club Mons",
+    "name": "Football Club Mon",
     "description": "A not so competitive football team",
     "sportType": "football"
 }

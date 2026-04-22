@@ -17,9 +17,11 @@ usersController.get("/", AuthService.authorize, (req: AuthentificatedRequest, re
 
     const role = req.user!.role;
 
-    const users = UsersService.getAll();
+    const isAdmin = role === ERole.ADMIN;
 
-    if(role === ERole.ADMIN) {
+    const users = UsersService.getAll(isAdmin);
+
+    if(isAdmin) {
         const responseDTO = users.map(user => UsersMapper.toDTO(user))
         return res.status(200).send(responseDTO);
     } else {
@@ -66,7 +68,7 @@ usersController.get("/username/:name", AuthService.authorize, AuthService.isAdmi
         return res.status(400).send({message : "must be a string value"})
     }
 
-    const user = UsersService.getByUserName(userName);
+    const user = UsersService.getByUserName(userName, true);
 
     if(!user){
         return res.status(404).send({message : "cannot find userName"});
@@ -124,7 +126,7 @@ usersController.post("/", (req : Request, res: Response) => {
     return res.status(201).send(UsersMapper.toDTO(createdUser))
 })
 
-
+//PUT
 usersController.put("/:id", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
     LoggerService.info("[PUT USER]")
 
@@ -142,10 +144,6 @@ usersController.put("/:id", AuthService.authorize, (req: AuthentificatedRequest,
     //Authenticated user is not an admin and tries to update another user
     if(currentUser.role !== ERole.ADMIN && currentUser.id !== idUser){
         return res.status(403).send("only admin can update other account")
-    }
-    //L'ID de l'URL doit matcher avec l'ID dans le Body
-    if(currentUser.id !== idUser){//a verifier
-        return res.status(403).send({message : "the body id must match with th id in parameter"})
     }
 
     if(updateUser.id !== idUser){

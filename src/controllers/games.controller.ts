@@ -1,6 +1,6 @@
 import { Router, Response, Request } from "express";
 import { GamesService } from "../services/games.service";
-import { isEGameStatus, isNewGameDTO, isNumber } from "../utils/guards";
+import { isEGameStatus, isGameDTO, isNewGameDTO, isNumber } from "../utils/guards";
 import { AuthService } from "../services/auth.service";
 import { AuthentificatedRequest } from "../models/auth.model";
 import { GamesMapper } from "../mappers/games.mapper";
@@ -81,6 +81,10 @@ gamesController.put("/:id",AuthService.authorize , AuthService.isReferee, (req: 
 
     if(id !== body.id){
         return res.status(400).send({message : "parameter id must matching with id in the body"})
+    }
+
+    if(!isGameDTO(body)){
+        return res.status(400).send({message : "invaid game"})
     }
 
     const updatedGame = GamesMapper.fromDTO(body)
