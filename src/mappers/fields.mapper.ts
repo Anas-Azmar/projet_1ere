@@ -1,6 +1,7 @@
 import { Field, FieldDBO, FieldDTO, NewField, NewFieldDTO } from "../models/field.model";
 
 export class FieldsMapper {
+    // Convert domain Field to DTO for API responses
     public static toDTO(domain: Field): FieldDTO {
         return {
             id: domain.id,
@@ -11,6 +12,7 @@ export class FieldsMapper {
         }
     }
 
+    // Convert new field request data to domain model
     public static fromNewDTO(dto: NewFieldDTO): NewField {
         return {
             name: dto.name,
@@ -18,6 +20,7 @@ export class FieldsMapper {
         }
     }
 
+    // Convert domain Field to DBO for database storage
     public static toDBO(domain: Field): FieldDBO {
         return {
             id: domain.id,
@@ -29,6 +32,7 @@ export class FieldsMapper {
         }
     }
 
+    // Convert DBO from database to domain Field
     public static fromDBO(dbo: FieldDBO): Field {
         return {
             id: dbo.id,
@@ -41,6 +45,7 @@ export class FieldsMapper {
     }
 
 
+    // Convert DTO request data to domain Field
     public static fromDTO(dto: FieldDTO): Field {
     return {
         id: dto.id,

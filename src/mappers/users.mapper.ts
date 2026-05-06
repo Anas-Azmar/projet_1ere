@@ -1,6 +1,7 @@
 import { NewUser, NewUserDTO, UpdateUser, User, UserDBO, UserDTO, UserShortDTO } from "../models/user.model";
 
 export class UsersMapper {
+    // Convert domain User to complete DTO for API responses
     public static toDTO(domain: User): UserDTO {
         return {
             id: domain.id,
@@ -15,6 +16,7 @@ export class UsersMapper {
         }
     }
 
+    // Convert domain User to DBO for database storage
     public static toDBO(domain: User): UserDBO {
         return {
             id: domain.id,
@@ -32,6 +34,7 @@ export class UsersMapper {
     }
 
 
+    // Convert DBO from database to domain User
     public static fromDBO(dbo: UserDBO): User {
         return {
             id: dbo.id,
@@ -48,6 +51,7 @@ export class UsersMapper {
         }
     }
 
+    // Convert DTO request data to domain User
     public static fromDTO(domain: UserDTO): User {
         return {
             id: domain.id,
@@ -63,6 +67,7 @@ export class UsersMapper {
         }
     }
 
+    // Convert new user registration data to domain model
     public static fromNewDTO(dto: NewUserDTO): NewUser {
         return {
             firstName: dto.firstName,
@@ -73,6 +78,7 @@ export class UsersMapper {
         }
     } 
 
+    // Convert domain User to short DTO (only id, firstName, lastName)
     public static toShortDTO(domain: User): UserShortDTO {
         return {
             id: domain.id,
@@ -82,6 +88,7 @@ export class UsersMapper {
     }
 
 
+    // Convert DTO update data to domain UpdateUser
     public static fromUpdateDTO(dto: UserDTO): UpdateUser {
         return {
             firstName: dto.firstName,

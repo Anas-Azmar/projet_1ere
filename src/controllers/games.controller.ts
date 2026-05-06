@@ -13,8 +13,7 @@ import { EGameStatus, NewGameDTO } from "../models/game.model";
 
 export const gamesController = Router();
 
-
-
+// GET /games - Retrieve all upcoming games
 gamesController.get("/", (req: Request, res: Response) => {
 
     const result = GamesService.getAll();
@@ -26,6 +25,7 @@ gamesController.get("/", (req: Request, res: Response) => {
 
 
 
+// GET /games/:id - Get game details by ID
 gamesController.get("/:id", (req: Request, res: Response) => {
 
     const id = Number(req.params.id);
@@ -44,9 +44,9 @@ gamesController.get("/:id", (req: Request, res: Response) => {
 })
 
 
-//POST
+// POST /games - Create new game (referee only)
 gamesController.post("/", AuthService.authorize, AuthService.isReferee, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[POST]")
+    LoggerService.info("[POST /games] Create new game")
 
     const body : NewGameDTO = req.body
     const userId = req.user!.id;
@@ -69,7 +69,7 @@ gamesController.post("/", AuthService.authorize, AuthService.isReferee, (req: Au
 
 
 
-//PUT
+// PUT /games/:id - Update game details (referee only)
 gamesController.put("/:id",AuthService.authorize , AuthService.isReferee, (req: AuthentificatedRequest, res: Response) => {
 
     const id = Number(req.params.id)
@@ -84,7 +84,7 @@ gamesController.put("/:id",AuthService.authorize , AuthService.isReferee, (req: 
     }
 
     if(!isGameDTO(body)){
-        return res.status(400).send({message : "invaid game"})
+        return res.status(400).send({message : "invalid game"})
     }
 
     const updatedGame = GamesMapper.fromDTO(body)
@@ -103,7 +103,7 @@ gamesController.put("/:id",AuthService.authorize , AuthService.isReferee, (req: 
 })
 
 
-//DELETE
+// DELETE /games/:id - Remove game (admin only)
 gamesController.delete("/:id", AuthService.authorize , AuthService.isAdmin, (req: AuthentificatedRequest, res:  Response) => {
 
     const id = Number(req.params.id);
@@ -122,7 +122,7 @@ gamesController.delete("/:id", AuthService.authorize , AuthService.isAdmin, (req
 })
 
 
-//PATCH SET SCORE
+// PATCH /games/:id/score/:home/:away - Update game score (referee only)
 gamesController.patch("/:id/score/:home/:away",AuthService.authorize ,AuthService.isReferee, (req: AuthentificatedRequest, res: Response) => {
 
     const id = Number(req.params.id);
@@ -150,11 +150,11 @@ gamesController.patch("/:id/score/:home/:away",AuthService.authorize ,AuthServic
     return res.status(200).send(GamesMapper.toDTO(result))
 })
 
+// PATCH /games/:id/status/:status - Change game status (CREATED->SCHEDULED->STARTED->FINISHED)
 gamesController.patch("/:id/status/:status", AuthService.authorize, AuthService.isRefereeOrTrainerOrAdmin, (req: AuthentificatedRequest, res: Response) => {
-
     const id = Number(req.params.id);
     const status = req.params.status;
-    console.log("Received request to update game status. ID:", id, "Status:", status);
+    LoggerService.info("[PATCH /games/:id/status] Game status change attempt - ID: " + id + " New status: " + status);
 
     if(!isNumber(id) || Number.isNaN(id)){
         return res.status(400).send({message : "invalid id"})

@@ -16,6 +16,7 @@ export class TeamsService {
 
     private static readonly FILE_PATH = './data/teams.json';
 
+    // Calculate next available ID
     //FIND NEXT ID
     private static getNewID(items: Team[]): number {
     let maxId = 0;
@@ -53,6 +54,7 @@ export class TeamsService {
 
     }
 
+    // Get all teams
     //GET ALL
     public static getAll(): Team[] {
         return this.readDB();
@@ -60,13 +62,14 @@ export class TeamsService {
     }
 
 
+    // Get teams for a user (as trainer or player) with full details
     //
     public static getMyTeams(userId : number): { team: Team, trainer: User, players: User[] }[] | undefined {
 
         try {
             const teams = this.readDB();
 
-            const userTeams = teams.filter(teams => teams.trainerId === userId || teams.players.includes(userId));
+            const userTeams = teams.filter(team => team.trainerId === userId || team.players.includes(userId));
 
             if(userTeams.length === 0){
                 LoggerService.error("cannot find a teams with this id");
@@ -116,6 +119,7 @@ export class TeamsService {
         }
 
     }
+    // Find team by ID
     //GET BY ID
     public static getById(id: number): Team | undefined {
 
@@ -133,6 +137,7 @@ export class TeamsService {
     }
 
 
+    // Find team by name (case insensitive)
     //GET BY NAME (use for the POST method)
     public static getByName(name: string): Team | undefined{
 
@@ -143,6 +148,7 @@ export class TeamsService {
     }
 
 
+    // Create new team with trainer as creator
     //POST TEAMS
     public static create(newTeam: NewTeam, trainerId : number): Team | undefined | "ALREADY_EXISTS"{
 
@@ -182,6 +188,7 @@ export class TeamsService {
     }
 
 
+    // Update team details (check for duplicate names)
     //PUT TEAMS
     public static update(id: number, teamUp: Team): Team | undefined | "TEAM_NAME_ALREADY_TAKEN" {
 

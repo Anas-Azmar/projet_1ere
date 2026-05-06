@@ -3,6 +3,7 @@ import { User, UserShortDTO } from "../models/user.model";
 import { UsersMapper } from "./users.mapper";
 
 export class TeamsMapper {
+    // Convert domain Team to complete DTO
     public static toDTO(domain: Team): TeamDTO {
         return {
             id: domain.id,
@@ -16,6 +17,7 @@ export class TeamsMapper {
         }
     }
 
+    // Convert domain Team to DBO for database storage
     public static toDBO(domain: Team): TeamDBO {
         return {
             id: domain.id,
@@ -30,7 +32,7 @@ export class TeamsMapper {
         }
     }
 
-    // NOUVEAU : Lecture de la BDD
+    // Convert DBO from database to domain Team
     public static fromDBO(dbo: TeamDBO): Team {
         return {
             id: dbo.id,
@@ -45,6 +47,7 @@ export class TeamsMapper {
         }
     }
 
+    // Convert new team request data to domain model
     public static fromNewDTO(dto: NewTeamDTO): NewTeam {
         return {
             name: dto.name,
@@ -53,6 +56,7 @@ export class TeamsMapper {
         }
     }
 
+    // Convert domain Team to short DTO (only id, name, sportType)
     public static toShortDTO(domain: Team): TeamShortDTO {
         return {
             id: domain.id,
@@ -61,6 +65,7 @@ export class TeamsMapper {
         }
     }
 
+    // Convert domain Team to full DTO (includes trainer and players details)
     public static toFullDTO(domain: Team, trainer: UserShortDTO, players: UserShortDTO[]): TeamFullDTO {
         return {
             id: domain.id,
@@ -74,6 +79,7 @@ export class TeamsMapper {
         }
     }
 
+    // Convert DTO request data to domain Team
     public static fromDTO(domain: TeamDTO): Team {
         return {
             id: domain.id,

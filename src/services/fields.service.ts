@@ -13,7 +13,7 @@ export class FieldsService {
 
     private static readonly FILE_PATH = './data/fields.json';
 
-
+    // Calculate next available ID
     private static getNewId(items : Field[]): number {
 
         let maxId = 0;
@@ -29,16 +29,18 @@ export class FieldsService {
         return maxId+1;
     }
 
+    // Read and parse all fields from database
     private static readDB(): Field[] {
         try {
             const dbos = FilesService.readFile<FieldDBO>(this.FILE_PATH) || [];
             return dbos.map(field => FieldsMapper.fromDBO(field))
         } catch (error) {
-            LoggerService.error("Error to read files games.json");
+            LoggerService.error("Error to read files fields.json");
             return []
         }
     }
 
+    // Write all fields to database file
     private static write(field : Field[]) : boolean {
         try {
             const dbos = field.map(dbo => FieldsMapper.toDBO(dbo));
@@ -51,6 +53,7 @@ export class FieldsService {
     }
 
 
+    // Get all sports fields
     public static getAll(): Field[] {
 
         return this.readDB();
@@ -58,6 +61,7 @@ export class FieldsService {
     }
 
 
+    // Find field by ID
     public static getById(id : number, includeInactive: boolean = false): Field | undefined {
 
         try {
@@ -71,6 +75,7 @@ export class FieldsService {
         }
     }
 
+    // Create new sports field
     public static create(field : NewField): Field | undefined{
 
         try {
@@ -102,6 +107,7 @@ export class FieldsService {
         }
     }
 
+    // Update field details (name, location)
     public static update(id: number, field : Field): Field | undefined {
 
         try {

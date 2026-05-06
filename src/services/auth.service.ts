@@ -11,6 +11,7 @@ import { isString } from "../utils/guards";
 
 export class AuthService {
 
+    // Authenticate user with credentials and generate JWT token
     //token-token
     static login(userName : string, mdp: string): AuthentificatedUserDTO | undefined {
 
@@ -32,7 +33,7 @@ export class AuthService {
             const token = generateFakeToken(userName);
 
             if(!token){
-                LoggerService.error("failed to generate toekn for user")
+                LoggerService.error("failed to generate token for user")
                 return undefined;
             }
 
@@ -48,6 +49,7 @@ export class AuthService {
         }
     }
 
+    // Middleware: Verify JWT token and attach user to request
     //MIDDLEWARE D'AUTHENTIFICATION
     public static authorize(req: AuthentificatedRequest, res: Response, next: NextFunction){
         
@@ -72,6 +74,7 @@ export class AuthService {
     }
 
 
+    // Middleware: Check if user is admin
     public static isAdmin(req: AuthentificatedRequest, res : Response, next : NextFunction){
 
         if(!req.user){
@@ -85,6 +88,7 @@ export class AuthService {
         return next();
     }
 
+    // Middleware: Check if user is referee
     public static isReferee(req: AuthentificatedRequest, res: Response, next : NextFunction){
 
         if(!req.user){
@@ -98,6 +102,7 @@ export class AuthService {
         return next();
     }
 
+// Middleware: Check if user is admin or referee
 public static isAdminOrReferee(req: AuthentificatedRequest, res: Response, next: NextFunction) {
     
     if(!req.user){
@@ -112,6 +117,7 @@ public static isAdminOrReferee(req: AuthentificatedRequest, res: Response, next:
 }
 
 
+// Middleware: Check if user is trainer
 public static isTrainer(req: AuthentificatedRequest, res: Response, next: NextFunction){
 
     if(!req.user){
@@ -119,12 +125,13 @@ public static isTrainer(req: AuthentificatedRequest, res: Response, next: NextFu
     }
 
     if(req.user.role !== ERole.TRAINER){
-        return res.status(403).send({message : "Only a traine can do this"});
+        return res.status(403).send({message : "Only a trainer can do this"});
     }
 
     return next();
 }
 
+// Middleware: Check if user is referee, trainer, or admin
 public static isRefereeOrTrainerOrAdmin(req: AuthentificatedRequest, res: Response, next : NextFunction) {
 
     if(!req.user){

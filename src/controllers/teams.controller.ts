@@ -15,9 +15,9 @@ import { NewTeamDTO } from "../models/team.model";
 
 export const teamsController = Router();
 
-//GET ALL TEAMS
+// GET /teams - List all teams (summary view)
 teamsController.get("/", (req: Request, res: Response) => {
-    LoggerService.info("[GET ALL TEAMS]")
+    LoggerService.info("[GET /teams] Fetch all teams")
 
     const result = TeamsService.getAll();
 
@@ -26,9 +26,9 @@ teamsController.get("/", (req: Request, res: Response) => {
     return res.status(200).send(responseDTO);
 })
 
-//GET TEAMS FULL
+// GET /teams/own - Get authenticated user's teams with full details
 teamsController.get("/own", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[GET FULL TEAMS]")
+    LoggerService.info("[GET /teams/own] Fetch user's teams")
 
     const userId = req.user!.id;
 
@@ -47,9 +47,9 @@ teamsController.get("/own", AuthService.authorize, (req: AuthentificatedRequest,
     ));
 })
 
-//GET TEAMS ID
+// GET /teams/:id - Get specific team details
 teamsController.get("/:id", (req: Request, res: Response ) => {
-    LoggerService.info("GET ID")
+    LoggerService.info("[GET /teams/:id] Fetch team by ID")
 
     const teamId = Number(req.params.id);
 
@@ -66,9 +66,9 @@ teamsController.get("/:id", (req: Request, res: Response ) => {
     return res.status(200).send(TeamsMapper.toDTO(result));
 })
 
-//POST NEW TEAMS
+// POST /teams - Create new team (trainer only)
 teamsController.post("/", AuthService.authorize ,AuthService.isTrainer, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[POST TEAMS]")
+    LoggerService.info("[POST /teams] Create new team")
 
     const team : NewTeamDTO = req.body;
     const trainerId = req.user!.id;
@@ -92,9 +92,9 @@ teamsController.post("/", AuthService.authorize ,AuthService.isTrainer, (req: Au
     return res.status(201).send(TeamsMapper.toDTO(result));
 }) 
 
-//UPDATE NEW TEAMS
+// PUT /teams/:id - Update team details (trainer only)
 teamsController.put("/:id", AuthService.authorize ,AuthService.isTrainer, (req: AuthentificatedRequest, res: Response) => {
-     LoggerService.info("[PUT TEAMS]")
+     LoggerService.info("[PUT /teams/:id] Update team")
 
      const teamId = Number(req.params.id);
      const team = req.body;
@@ -128,10 +128,9 @@ teamsController.put("/:id", AuthService.authorize ,AuthService.isTrainer, (req: 
 
 })
 
-//PATCH JOIN A TEAM
-
+// PATCH /teams/:id/join - Player joins a team
 teamsController.patch("/:id/join", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[PATCH JOIN TEAM]")
+    LoggerService.info("[PATCH /teams/:id/join] Player joining team")
 
     const teamId = Number(req.params.id);
     const playerId = req.user!.id;
@@ -155,9 +154,9 @@ teamsController.patch("/:id/join", AuthService.authorize, (req: AuthentificatedR
 
 })
 
-//PATCH LEAVE TEAM
+// PATCH /teams/:id/leave - Player leaves a team
 teamsController.patch("/:id/leave", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[PATCH LEAVING THE TEAM]")
+    LoggerService.info("[PATCH /teams/:id/leave] Player leaving team")
 
     const teamId = Number(req.params.id);
     const playerId = req.user!.id;

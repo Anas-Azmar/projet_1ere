@@ -1,4 +1,4 @@
-import { Router, Response, Request, response } from "express";
+import { Router, Response, Request } from "express";
 import { LoggerService } from "../services/logger.service";
 import { FieldsService } from "../services/fields.service";
 import { FieldsMapper } from "../mappers/fields.mapper";
@@ -12,10 +12,9 @@ import { AuthentificatedRequest } from "../models/auth.model";
 
 export const fieldsController = Router();
 
-
-
+// GET /fields - Retrieve all sports fields
 fieldsController.get("/", (req: Request, res: Response) => {
-    LoggerService.info("[GET ALL]")
+    LoggerService.info("[GET /fields] Fetch all fields")
 
     const result = FieldsService.getAll();
 
@@ -25,8 +24,9 @@ fieldsController.get("/", (req: Request, res: Response) => {
 })
 
 
+// GET /fields/:id - Get a specific field by ID
 fieldsController.get("/:id", (req: Request, res: Response) => {
-    LoggerService.info("[GET ID]")
+    LoggerService.info("[GET /fields/:id] Fetch field by ID")
 
     const paramsId = Number(req.params.id)
 
@@ -44,8 +44,9 @@ fieldsController.get("/:id", (req: Request, res: Response) => {
 })
 
 
+// POST /fields - Create new field (admin only)
 fieldsController.post("/", AuthService.authorize, AuthService.isAdmin, (req: AuthentificatedRequest, res: Response) => {
-     LoggerService.info("[POST]")
+     LoggerService.info("[POST /fields] Create new field")
 
      const body = req.body;
 
@@ -65,8 +66,9 @@ fieldsController.post("/", AuthService.authorize, AuthService.isAdmin, (req: Aut
 })
 
 
+// PUT /fields/:id - Update field details (admin only)
 fieldsController.put("/:id", AuthService.authorize, AuthService.isAdmin, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[Update fields]");
+    LoggerService.info("[PUT /fields/:id] Update field");
 
     const paramsId = Number(req.params.id);
     const body = req.body;

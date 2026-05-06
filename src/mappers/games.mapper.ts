@@ -3,7 +3,8 @@ import { EGameStatus, Game, GameDBO, GameDTO, GameShortDTO, NewGame, NewGameDTO 
 
 
 
-export class GamesMapper{
+export class GamesMapper {
+    // Convert domain Game to DTO for API responses
     public static toDTO(dto : Game): GameDTO {
         return {
             id: dto.id,
@@ -21,6 +22,7 @@ export class GamesMapper{
         }
     }
 
+    // Convert domain Game to DBO for database storage
     public static toDBO(dbo: Game): GameDBO {
         return {
             id: dbo.id,
@@ -39,6 +41,7 @@ export class GamesMapper{
         }
     }
 
+    // Convert domain Game to short DTO (minimal data)
     public static toShortDTO(dto: Game): GameShortDTO {
         return {
             id: dto.id,
@@ -51,6 +54,7 @@ export class GamesMapper{
         }
     }
 
+    // Convert new game request data to domain model
     public static fromNewDTO(dto: NewGameDTO): NewGame {
         return {
             name: dto.name,
@@ -62,6 +66,7 @@ export class GamesMapper{
         }
     }
 
+    // Convert DBO from database to domain Game
     public static fromDBO(dbo: GameDBO): Game {
         return {
             id: dbo.id,
@@ -80,6 +85,7 @@ export class GamesMapper{
         }
     }
 
+    // Convert DTO request data to domain Game
     public static fromDTO(domain: GameDTO): Game {
         return {
             id: domain.id,

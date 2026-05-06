@@ -3,22 +3,27 @@ import { LoggerService } from "./logger.service";
 
 export class FilesService {
 
+  // Check if folder exists
   private static doesFolderExist(folderPath: string) : boolean {
     return fs.existsSync(folderPath);
   }
 
+  // Create folder if it doesn't exist
   private static createFolder(folderPath: string) : void {
     fs.mkdirSync(folderPath);
   }
 
+  // Check if file exists
   private static doesFileExist(filePath: string) : boolean {
     return fs.existsSync(filePath);
   }
 
+  // Create empty file
   private static createFile(filePath: string) : void {
     fs.writeFileSync(filePath, '');
   }
 
+  // Create database file and folder if they don't exist
   private static createDBIfNotExist(dbPath: string) : void {
     const folderPath = dbPath.substring(0, dbPath.lastIndexOf('/'));
     if (!this.doesFolderExist(folderPath)) {

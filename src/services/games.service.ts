@@ -12,7 +12,7 @@ export class GamesService {
 
     private static readonly FILE_PATH = './data/games.json';
 
-    //GET NEXT ID
+    // Calculate next available ID
     private static getNewId(items : Game[]) : number {
         let maxId = 0;
         if(items.length === 0){
@@ -29,6 +29,7 @@ export class GamesService {
     }
 
 
+    // Read and parse all games from database
     private static readDB(): Game[] {
         try {
             const dbos = FilesService.readFile<GameDBO>(this.FILE_PATH) || []
@@ -39,6 +40,7 @@ export class GamesService {
         }
     }
 
+    // Write all games to database file
     private static write(game : Game[]): boolean {
         try {
             const dbos = game.map(dbo => GamesMapper.toDBO(dbo))
@@ -51,6 +53,7 @@ export class GamesService {
     }
 
 
+    // Get all upcoming games scheduled for future dates
     public static getAll(): Game[] {
 
         try {
@@ -67,6 +70,7 @@ export class GamesService {
         }
     }
 
+    // Find specific game by ID
     //GET ID
     public static getById(id : number): Game | undefined {
 
@@ -87,9 +91,9 @@ export class GamesService {
         }
     }
 
+    // Create new game with initial status (CREATED or SCHEDULED)
     //POST NEW GAME
-
-    public static create(game: NewGame, refereId : number): Game | undefined{// A Faire corriger le newGame champs undefined
+    public static create(game: NewGame, refereeId : number): Game | undefined{// A Faire corriger le newGame champs undefined
 
         try {
             const games = this.readDB();
@@ -114,11 +118,11 @@ export class GamesService {
             const newGame : Game = {
                 id: newId,
                 status : status,
-                name : game.name || "Match deja nomme",
+                name : game.name || "Match déjà nomme",
                 homeTeamId : game.homeTeamId || 0,
                 awayTeamId : game.awayTeamId || 0,
                 fieldId : game.fieldId,
-                refereeId: game.refereeId || refereId,
+                refereeId: game.refereeId || refereeId,
                 scheduledDate: game.scheduledDate ? new Date(game.scheduledDate) : undefined,
                 homeScore: 0,
                 awayScore: 0,
@@ -141,6 +145,7 @@ export class GamesService {
         }
     }
 
+    // Update game details (with status transition validation)
     //PUT GAMES
     public static update(id: number, upGame: Game): Game | "BAD_REQUEST" | undefined {
 
@@ -148,8 +153,6 @@ export class GamesService {
             const games = this.readDB();
 
             const gameIndex = games.findIndex(game => game.id === id && game.deletedAt === undefined);
-
-
             
             if(gameIndex === -1){
                 LoggerService.error("cannot find this id game")
@@ -175,15 +178,23 @@ export class GamesService {
                 }
             }
 
+            let finalStatus = upGame.status;
+
+            if(gameToUpdate.status === EGameStatus.CREATED) {
+                if(upGame.fieldId && upGame.scheduledDate){
+                    finalStatus = EGameStatus.SCHEDULED
+                }
+            }
+
   
-            gameToUpdate.status = upGame.status;
+            gameToUpdate.status = finalStatus;
             gameToUpdate.name = upGame.name;
-            gameToUpdate.fieldId = upGame.fieldId,
+            gameToUpdate.fieldId = upGame.fieldId;
             gameToUpdate.refereeId = upGame.refereeId;
             gameToUpdate.homeTeamId = upGame.homeTeamId;
             gameToUpdate.awayTeamId = upGame.awayTeamId;
-            gameToUpdate.homeScore = upGame.homeScore;
-            gameToUpdate.awayScore = upGame.awayScore;
+            gameToUpdate.homeScore = upGame.homeScore !== undefined ? upGame.homeScore : gameToUpdate.homeScore
+            gameToUpdate.awayScore = upGame.awayScore !== undefined ? upGame.awayScore : gameToUpdate.awayScore
             gameToUpdate.scheduledDate = upGame.scheduledDate;
             gameToUpdate.updatedAt = new Date();
 
@@ -199,6 +210,7 @@ export class GamesService {
         }
     }
 
+    // Soft delete game (mark as deleted)
     public static delete(id: number): boolean {
 
         try {
@@ -221,6 +233,7 @@ export class GamesService {
         }
     }
 
+    // Update game score (only if game is started)
     //PATCH SET SCORE
     public static setScore(id: number, home: number, away: number): Game | undefined {
 
@@ -236,7 +249,7 @@ export class GamesService {
 
             const gameToUpdate = games[gameIndex]
 
-            console.log("Game status for setting score:", gameToUpdate.status);
+
             if(gameToUpdate.status.toLocaleLowerCase() !== EGameStatus.STARTED){
                 LoggerService.error("Game is not started, cannot set score")
                 return undefined;
@@ -258,6 +271,7 @@ export class GamesService {
         }
     }
 
+    // Change game status (CREATED->SCHEDULED->STARTED->FINISHED/CANCELLED)
     //Patch set status
     public static updateGameStatus(id: number, newStatus: EGameStatus): Game | undefined | "BAD_REQUEST" {
 
@@ -285,14 +299,6 @@ export class GamesService {
                     if (newStatus === EGameStatus.CANCELLED) {
                         isAllowed = true;
                     } else if (newStatus === EGameStatus.STARTED) {
-                        console.log("Checking prerequisites for starting the game:", {
-                            fieldId: game.fieldId,
-                            refereeId: game.refereeId,
-                            homeTeamId: game.homeTeamId,
-                            awayTeamId: game.awayTeamId,
-                            homeScore: game.homeScore,
-                            awayScore: game.awayScore
-                        });
                         if (game.fieldId === undefined || game.refereeId === undefined || game.homeTeamId === undefined || game.awayTeamId === undefined || game.homeScore !== 0 || game.awayScore !== 0) {
                             LoggerService.error("Missing prerequisites to start game");
                             return "BAD_REQUEST"; 

@@ -1,4 +1,4 @@
-import { unescape } from "querystring";
+
 import { UsersMapper } from "../mappers/users.mapper";
 import { ERole, EUserStatus, NewUser, NewUserDTO, User, UserDBO, UserDTO, UserShort, UserShortDTO } from "../models/user.model";
 import { FilesService } from "./files.service";
@@ -12,7 +12,7 @@ export class UsersService {
 
     private static readonly FILE_PATH = "./data/users.json";
 
-
+    // Calculate next available ID
     //FIND NEXT ID
         private static getNewID(items: User[]): number {
         let maxId = 0;
@@ -27,6 +27,7 @@ export class UsersService {
         return maxId + 1;
       }
     
+    // Read and parse all users from database
     
         private static readDB(): User[] {
             try {
@@ -38,6 +39,7 @@ export class UsersService {
             }
         }
     
+    // Write all users to database file
         private static write(teams: User[]): boolean {
             try {
                 const dbos = teams.map(dbo=> UsersMapper.toDBO(dbo))
@@ -52,6 +54,7 @@ export class UsersService {
 
 
 
+    // Get all users (optionally include inactive ones)
     //GET ALL
     public static getAll(includeInactive : boolean = false): User[] {
 
@@ -70,6 +73,7 @@ export class UsersService {
         }
     }
 
+    // Find user by ID (active only by default)
     //GET BY ID
     public static getById(id: number): User | undefined {
 
@@ -92,13 +96,14 @@ export class UsersService {
     }
 
 
+    // Find user by username (optionally include inactive)
     //GET BY USERNAME
     public static getByUserName(name: string, includeInactive : boolean = false): User | undefined {
 
         try {
             const users = this.readDB();
 
-            const userName = users.find(user=> {
+            const targetUser = users.find(user=> {
                 if(includeInactive){
                     return user.username === name
                 } else {
@@ -106,17 +111,18 @@ export class UsersService {
                 }
             })
 
-            if(!userName){
+            if(!targetUser){
                 return undefined;
             }
 
-            return userName
+            return targetUser
         } catch (error) {
             LoggerService.error("cannot find user by his name")
             return undefined;
         }
     }
 
+    // Find user by email (optionally include inactive)
     //GET EMAIL
 
     public static getByEmail(email : string, includeInactive : boolean = false) : User | undefined {
@@ -126,16 +132,12 @@ export class UsersService {
 
             const userMail = users.find(user => {
                 if(includeInactive){
-                    return user.email
+                    return user.email === email
                 } else {
-                    return user.email && user.status === EUserStatus.ACTIVE;
+                    return user.email === email && user.status === EUserStatus.ACTIVE;
                 }
             });
 
-            if(!userMail){
-                LoggerService.error("cannot find a user with this email")
-                return undefined;
-            }
 
             return userMail;
 
@@ -145,6 +147,7 @@ export class UsersService {
          }
     }
 
+    // Create new user account with bcrypt password hashing
     //POST USER
     public static create(newUser : NewUser): User | undefined | "ALREADY_EXISTS"{
 
@@ -178,8 +181,6 @@ export class UsersService {
 
             users.push(newU);
 
-            this.write(users)
-
             if(!this.write(users)){
                 return undefined;
             }
@@ -200,7 +201,6 @@ export class UsersService {
 
             const indexUser = users.findIndex(u => u.id === id && u.status === EUserStatus.ACTIVE);
 
-            console.log("Index of user to update:", indexUser, id);
             if(indexUser === -1){
                 LoggerService.error("cannot find this user")
                 return "NOT_FOUND";

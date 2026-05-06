@@ -11,9 +11,9 @@ import { ERole, NewUserDTO, UserDTO } from "../models/user.model";
 
 export const usersController = Router();
 
-//GET ALL
+// GET /users - List all users (full list for admin, summary for others)
 usersController.get("/", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[GET ALL]");
+    LoggerService.info("[GET /users] Fetch all users");
 
     const role = req.user!.role;
 
@@ -33,9 +33,9 @@ usersController.get("/", AuthService.authorize, (req: AuthentificatedRequest, re
     
 })
 
-//GET BY ID
+// GET /users/:id - Get user details (full for admin/self, summary for others)
 usersController.get("/:id", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("GET BY ID")
+    LoggerService.info("[GET /users/:id] Fetch user by ID")
 
     const userId = Number(req.params.id);
     const currentUser = req.user!;
@@ -58,9 +58,9 @@ usersController.get("/:id", AuthService.authorize, (req: AuthentificatedRequest,
     
 })
 
-//GET USERNAME
+// GET /users/username/:name - Find user by username (admin/referee only)
 usersController.get("/username/:name", AuthService.authorize, AuthService.isAdminOrReferee, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[GET BY USERNAME]")
+    LoggerService.info("[GET /users/username/:name] Search by username")
 
     const userName = req.params.name;
 
@@ -77,9 +77,9 @@ usersController.get("/username/:name", AuthService.authorize, AuthService.isAdmi
     return res.status(200).send(UsersMapper.toDTO(user))
 })
 
-//GET BY EMAIL
+// GET /users/email/:email - Find user by email (admin/referee only)
 usersController.get("/email/:email", AuthService.authorize, AuthService.isAdminOrReferee, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[GET BY EMAIL]")
+    LoggerService.info("[GET /users/email/:email] Search by email")
 
     const userMail = req.params.email;
 
@@ -97,9 +97,9 @@ usersController.get("/email/:email", AuthService.authorize, AuthService.isAdminO
 })
 
 
-//POST
+// POST /users - Register new user
 usersController.post("/", (req : Request, res: Response) => {
-    LoggerService.info("[POST]")
+    LoggerService.info("[POST /users] User registration")
 
     const body : NewUserDTO = req.body;
 
@@ -107,6 +107,7 @@ usersController.post("/", (req : Request, res: Response) => {
         return res.status(400).send({message : "Invalid User"})
     }
 
+    // TODO: Move email validation to guard for centralized validation
     if(!body.email.includes("@") || !body.email.includes(".")){//Pense a mettre un guard a la place
         return res.status(400).send({message : "The email must contain at least one '@' and one '.'"});
     }
@@ -126,9 +127,9 @@ usersController.post("/", (req : Request, res: Response) => {
     return res.status(201).send(UsersMapper.toDTO(createdUser))
 })
 
-//PUT
+// PUT /users/:id - Update user details (admin or self)
 usersController.put("/:id", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[PUT USER]")
+    LoggerService.info("[PUT /users/:id] Update user")
 
     const idUser = Number(req.params.id);
     const updateUser = req.body;
@@ -141,7 +142,7 @@ usersController.put("/:id", AuthService.authorize, (req: AuthentificatedRequest,
     if(!isNumber(idUser) || Number.isNaN(idUser)){
         return res.status(400).send({message : "the user id must be a valid number"});
     }
-    //Authenticated user is not an admin and tries to update another user
+    // Non-admin cannot update other users
     if(currentUser.role !== ERole.ADMIN && currentUser.id !== idUser){
         return res.status(403).send("only admin can update other account")
     }
@@ -174,9 +175,9 @@ usersController.put("/:id", AuthService.authorize, (req: AuthentificatedRequest,
 
 })
 
-//DELETE USER
+// DELETE /users/:id - Delete user account (admin or self)
 usersController.delete("/:id", AuthService.authorize, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[DELETE]")
+    LoggerService.info("[DELETE /users/:id] Delete user")
 
     const idUser = Number(req.params.id);
     const currentUser = req.user!;
@@ -208,9 +209,9 @@ usersController.delete("/:id", AuthService.authorize, (req: AuthentificatedReque
     return res.status(200).send();
 })
 
-//PATCH CHANGE ROLE
+// PATCH /users/:id/role/:role - Change user role to admin/referee (admin only)
 usersController.patch("/:id/role/:role", AuthService.authorize, AuthService.isAdmin, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[PATCH ROLE]")
+    LoggerService.info("[PATCH /users/:id/role] Change user role")
 
     const idUser = Number(req.params.id);
     const roleUser = req.params.role;
@@ -243,9 +244,9 @@ usersController.patch("/:id/role/:role", AuthService.authorize, AuthService.isAd
 
 })
 
-//PATCH REACTIVE USER
+// PATCH /users/:id/reactivate - Reactivate inactive user account (admin only)
 usersController.patch("/:id/reactivate", AuthService.authorize, AuthService.isAdmin, (req: AuthentificatedRequest, res: Response) => {
-    LoggerService.info("[PATCH STATUS ACTIVE]")
+    LoggerService.info("[PATCH /users/:id/reactivate] Reactivate user")
 
     const idUser = Number(req.params.id);
 

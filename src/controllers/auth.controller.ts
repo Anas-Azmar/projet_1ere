@@ -8,10 +8,9 @@ import { AuthService } from "../services/auth.service";
 
 export const authController = Router();
 
-
-
+// POST /auth/login - Authenticate user with credentials and return JWT token
 authController.post("/login", (req : Request, res: Response) => {
-    LoggerService.info("[POST/auth/login]")
+    LoggerService.info("[POST /auth/login] Login attempt")
 
     const loginData = req.body;
 
