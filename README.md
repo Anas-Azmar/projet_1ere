@@ -20,6 +20,9 @@ npm install
 # Initialisation des données de démo
 npm run demo:seed
 
+#préparation pour la production
+npm run build
+
 # Lancement en mode développement
 npm run dev
 
