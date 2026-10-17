@@ -1,7 +1,7 @@
 import { NextFunction, Response} from "express";
 import { AuthentificatedRequest, AuthentificatedUserDTO } from "../models/auth.model";
 import { ERole} from "../models/user.model";
-import { generateFakeToken, validateFakeToken } from "../utils/auth";
+import { generateToken, validateToken } from "../utils/auth";
 import { LoggerService } from "./logger.service";
 import { UsersService } from "./users.service";
 import bcrypt from "bcrypt"
@@ -30,7 +30,7 @@ export class AuthService {
                 return undefined;
             }
 
-            const token = generateFakeToken(userName);
+            const token = generateToken(userName);
 
             if(!token){
                 LoggerService.error("failed to generate token for user")
@@ -58,7 +58,7 @@ export class AuthService {
             return res.status(401).send({message : "token missing"});
         }
 
-        const username = validateFakeToken(token);
+        const username = validateToken(token);
         if(!username){
             return res.status(401).send({message : "Invalid token"});
         }
