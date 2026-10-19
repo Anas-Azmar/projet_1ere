@@ -2,18 +2,18 @@
 
 API REST développée en TypeScript et Node.js pour la gestion complète de compétitions sportives (équipes, joueurs, matchs et terrains).
 
-## 🚀 Fonctionnalités
+## Fonctionnalités
 * **Architecture en couches :** Découplage Controllers, Services, Mappers et modèles DTO / DBO.
 * **Sécurité & Contrôle d'accès (RBAC) :** Authentification par jetons JWT et gestion des droits par rôles (Administrateur, Coach, Joueur).
 * **Opérations CRUD & Soft Delete :** Gestion des données avec persistance et suppression logique.
 * **Tests :** Scénarios de tests d'intégration HTTP via fichiers `.http` (REST Client).
 
-## 🛠️ Stack Technique
+## Stack Technique
 * **Langages & Runtime :** TypeScript, Node.js
 * **Sécurité :** JSON Web Tokens (JWT), bcrypt / hachage
 * **Architecture :** REST API, Middlewares / Guards, DTO/DBO Mapping
 
-## 💻 Installation et Utilisation
+## Installation et Utilisation
 
 ```bash
 # 1. Installation des dépendances
